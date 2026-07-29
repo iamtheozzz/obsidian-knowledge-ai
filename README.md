@@ -1,6 +1,6 @@
 **English** · [简体中文](README.zh-CN.md)
 
-# Knowledge AI
+# Lark Knowledge AI
 
 A local alternative to enterprise knowledge-QA products like Feishu/Lark — free, unmetered, and entirely on your own machine. Ask your Obsidian vault in natural language. Semantic and keyword search over notes and PDFs, answers with clickable citations, **nothing ever leaves your computer**.
 
@@ -9,39 +9,6 @@ A local alternative to enterprise knowledge-QA products like Feishu/Lark — fre
 
 ---
 
-## Disclosures
-
-Per Obsidian's [developer policies](https://docs.obsidian.md/Developer+policies), two things need stating explicitly:
-
-**Network use — fully offline by default.**
-
-The plugin's only outbound destination is the endpoint you configure in settings.
-The default, `http://localhost:11434`, is a **loopback address** (`127.0.0.1`) —
-traffic stays inside the operating system and never touches a network interface.
-**Once installed, it works with networking switched off entirely**: indexing, asking
-and rewriting need no connection.
-
-Internet is only needed to install — downloading Obsidian, Ollama and the models. Once.
-
-No telemetry, no ads, no self-update mechanism. `localhost` is the only address in the source.
-
-The one exception: if you **deliberately** point the endpoint at a cloud provider
-(OpenAI, say), your note content goes to that provider. The plugin won't stop you,
-but that is your explicit choice.
-
-**File access outside the vault** — the vector index is written **outside** your
-Obsidian vault (by default the OS app-data directory, e.g.
-`~/Library/Application Support/knowledge-ai/` on macOS). The location is configurable.
-
-Why not inside the vault: the index is a machine-local build artifact that grows to
-tens or hundreds of megabytes. Putting it in `.obsidian/` means Obsidian Sync,
-obsidian-git and friends carry it around — wasted bandwidth for something that has to
-be recomputed on another machine anyway. That part uses Node's `fs`, which is why the
-plugin is marked `isDesktopOnly`.
-
-Everything else — reading and writing files inside your vault — goes through Obsidian's Vault API.
-
----
 
 ## Screenshots
 
@@ -61,7 +28,6 @@ Everything else — reading and writing files inside your vault — goes through
 
 ## Contents
 
-- [Disclosures](#disclosures)
 - [What it does](#what-it-does)
 - [Installation](#installation)
   - [1. Obsidian](#1-obsidian)
@@ -75,6 +41,7 @@ Everything else — reading and writing files inside your vault — goes through
 - [FAQ](#faq)
 - [Privacy and network](#privacy-and-network)
 - [How it compares](#how-it-compares)
+- [Disclosures](#disclosures)
 
 ---
 
@@ -207,7 +174,7 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
    `main.js`, `manifest.json`, `styles.css`
 2. Create the folder `<your vault>/.obsidian/plugins/knowledge-ai/`
 3. Put the three files there
-4. Restart Obsidian and enable **Knowledge AI** under *Settings → Community plugins*
+4. Restart Obsidian and enable **Lark Knowledge AI** under *Settings → Community plugins*
 
 > `.obsidian` is hidden. On macOS press `Cmd+Shift+.` in Finder to reveal hidden files.
 
@@ -215,7 +182,7 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 If you use Claude Code, Codex or similar, just say:
 
-> Install Knowledge AI for me following this README (attach this file)
+> Install Lark Knowledge AI for me following this README (attach this file)
 
 Everything up to the last step — installing Obsidian and Ollama, pulling models, placing the plugin files, writing the config — can be done for you. The equivalent commands, if you'd rather run them yourself:
 
@@ -244,7 +211,7 @@ cat > "$DIR/data.json" <<'JSON'
 JSON
 ```
 
-**The one step an agent cannot do**: open Obsidian → *Settings → Community plugins* → enable **Knowledge AI**. Obsidian exposes no CLI switch for this; you have to click it.
+**The one step an agent cannot do**: open Obsidian → *Settings → Community plugins* → enable **Lark Knowledge AI**. Obsidian exposes no CLI switch for this; you have to click it.
 
 Once enabled you **don't need to build the index manually** — `autoIndex` is on by default, so the first file change kicks it off within 15 seconds. To start immediately, use the *Build index* button in settings.
 
@@ -266,7 +233,7 @@ A 9B model plus its context cache measures over 10 GB in practice. When RAM runs
 
 ### 5. First-run setup
 
-Open *Settings → Knowledge AI*:
+Open *Settings → Lark Knowledge AI*:
 
 1. **Endpoint URL** — leave as `http://localhost:11434/v1`
 2. **Chat model** — the dropdown lists what you've installed; pick one
@@ -322,13 +289,13 @@ The **Rebuild** button wipes and re-runs everything. **PDF text extraction is ca
 |---|---|
 | A hotkey you assign | Open the centered modal (**none is bound by default** — see below) |
 | Click the ribbon icon | Same |
-| Command palette → `Knowledge AI: Ask` | Same |
+| Command palette → `Lark Knowledge AI: Ask` | Same |
 
 Type and press Enter. Answers stream in, with references at the end.
 
 `Enter` to ask · `Shift + Enter` for a newline · `Esc` to stop generating (press again to close)
 
-> No hotkey ships by default. Bind one under *Settings → Hotkeys* → search `Knowledge AI`.
+> No hotkey ships by default. Bind one under *Settings → Hotkeys* → search `Lark Knowledge AI`.
 
 ### Narrowing the search
 
@@ -357,7 +324,7 @@ Conversations are saved with the Obsidian workspace — collapsing the sidebar o
 Select some text, then:
 
 - Right-click → **Rewrite selection**, or
-- Command palette → `Knowledge AI: Rewrite selection`
+- Command palette → `Lark Knowledge AI: Rewrite selection`
 
 Six presets (tighter / clearer / more formal / key points / expand / to English), or write your own instruction.
 
@@ -573,6 +540,40 @@ Agent-style tools state their sources inside the answer text, so accuracy depend
 > Notes: Feishu's behaviour varies by version and deployment; the table reflects its public form.
 > Copilot and Claudian details come from the versions current at the time of writing
 > (Copilot 3.3.3 / Claudian 2.0.41). Everyone iterates fast — verify against what you actually have.
+
+---
+
+## Disclosures
+
+Per Obsidian's [developer policies](https://docs.obsidian.md/Developer+policies), two things need stating explicitly:
+
+**Network use — fully offline by default.**
+
+The plugin's only outbound destination is the endpoint you configure in settings.
+The default, `http://localhost:11434`, is a **loopback address** (`127.0.0.1`) —
+traffic stays inside the operating system and never touches a network interface.
+**Once installed, it works with networking switched off entirely**: indexing, asking
+and rewriting need no connection.
+
+Internet is only needed to install — downloading Obsidian, Ollama and the models. Once.
+
+No telemetry, no ads, no self-update mechanism. `localhost` is the only address in the source.
+
+The one exception: if you **deliberately** point the endpoint at a cloud provider
+(OpenAI, say), your note content goes to that provider. The plugin won't stop you,
+but that is your explicit choice.
+
+**File access outside the vault** — the vector index is written **outside** your
+Obsidian vault (by default the OS app-data directory, e.g.
+`~/Library/Application Support/knowledge-ai/` on macOS). The location is configurable.
+
+Why not inside the vault: the index is a machine-local build artifact that grows to
+tens or hundreds of megabytes. Putting it in `.obsidian/` means Obsidian Sync,
+obsidian-git and friends carry it around — wasted bandwidth for something that has to
+be recomputed on another machine anyway. That part uses Node's `fs`, which is why the
+plugin is marked `isDesktopOnly`.
+
+Everything else — reading and writing files inside your vault — goes through Obsidian's Vault API.
 
 ---
 

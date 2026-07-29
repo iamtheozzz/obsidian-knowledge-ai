@@ -1,5 +1,5 @@
 {
-  "name": "knowledge-ai",
+  "name": "lark-knowledge-ai",
   "version": "0.1.0",
   "description": "Ask your vault. Local semantic knowledge QA for Obsidian.",
   "main": "main.js",

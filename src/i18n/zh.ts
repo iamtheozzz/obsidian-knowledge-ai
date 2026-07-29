@@ -1,7 +1,7 @@
 // 简体中文语言包。键名即英文原文的语义标识，改文案不动代码。
 export default {
   // —— 通用 ——
-  "plugin.name": "Knowledge AI",
+  "plugin.name": "Lark Knowledge AI",
   "cmd.ask": "提问",
   "cmd.askSelection": "就选中内容提问",
   "cmd.rewrite": "改写选中内容",

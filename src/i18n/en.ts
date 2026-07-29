@@ -3,7 +3,7 @@ import type zh from "./zh";
 // English pack. Keys must stay in sync with zh.ts — the type below enforces it
 // at compile time, so a missing key is a build error rather than a blank label.
 const en: Record<keyof typeof zh, string> = {
-  "plugin.name": "Knowledge AI",
+  "plugin.name": "Lark Knowledge AI",
   "cmd.ask": "Ask",
   "cmd.askSelection": "Ask about selection",
   "cmd.rewrite": "Rewrite selection",
