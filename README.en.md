@@ -328,11 +328,7 @@ Type and press Enter. Answers stream in, with references at the end.
 
 `Enter` to ask · `Shift + Enter` for a newline · `Esc` to stop generating (press again to close)
 
-> **No hotkey is bound by default.** The official plugin guidelines advise against shipping
-> default hotkeys — the common combinations are already taken and conflicts are annoying to
-> track down. Go to *Settings → Hotkeys*, search `Knowledge AI`, and bind *Ask* to whatever
-> suits you (`Cmd/Ctrl + Shift + K` is a good pick). You don't have to: the ribbon icon and
-> the command palette both work.
+> No hotkey ships by default. Bind one under *Settings → Hotkeys* → search `Knowledge AI`.
 
 ### Narrowing the search
 
