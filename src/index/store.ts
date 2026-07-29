@@ -194,13 +194,13 @@ export class IndexStore {
   }
 
   /**
-   * 字面检索。语义检索对罕见专有名词是盲区——实测「什么是 MOPD」
+   * 字面检索。语义检索对罕见专有名词是盲区——实测问一个四字母缩写时
    * 最高分只有 0.439，低于 0.5 阈值，插件会回答「库里没有」，
-   * 而库里其实有 3 段。「Dresdner Kleinwort」更是前 8 名一条都没命中。
+   * 而库里其实有 3 段。一个不常见的机构名更是前 8 名一条都没命中。
    *
    * 打分用简化的 IDF：一个词出现在越少的段落里，命中它越值钱。
    * 不做分词——中文分词在浏览器里没有好用的实现，而真正需要字面检索的
-   * 恰恰是 MOPD / MXFP4 / EAGLE-3 这类 ASCII 专有名词，直接 indexOf 就够。
+   * 恰恰是缩写、型号、代号这类 ASCII 专有名词，直接 indexOf 就够。
    */
   keyword(terms: string[], topK: number, paths?: string[], since?: number): Hit[] {
     if (terms.length === 0) return [];

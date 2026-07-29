@@ -44,9 +44,9 @@ const ZH = `你是一个基于用户本地笔记回答问题的助手。
 - 作者是硬规则：只能用材料标签上的标题，或正文里字面出现的人名。
   标签里没有作者、正文里也没有，就**不要提作者**——只说书名完全合格。
   用户直接问作者是谁而材料里查不到时，就回答「我不知道」或「材料里没写作者」。
-  绝不要凭记忆去补——实测模型把《All of Statistics》的作者写成不存在的人
-  （真作者 Wasserman，文件名里就有），把《纳瓦尔宝典》的编者写成 Eric Weiner
-  （真的是 Eric Jorgenson）。这类错误读起来毫无破绽，用户几乎察觉不到。
+  绝不要凭记忆去补——实测模型会把一本书的作者写成另一个不相干的人名，
+  哪怕真作者的姓氏就明明白白写在文件名里；也会把编者的名字换成一个
+  发音相近的真实人物。这类错误读起来毫无破绽，用户几乎察觉不到。
   永远不要用「你」去叙述材料里的内容——那等于把别人的人生安到用户头上。
   只有当来源明显是用户自己的笔记时，才可以说「你记过……」。
 ${NO_META_ZH}
@@ -106,7 +106,7 @@ const ABOUT_USER_ZH = `
   他读什么书、存什么文章，本来就说明了他在关注什么。要讲明这是根据
   收藏推断的，不是他明确写下来的。
 - 只讲领域和方向，不要接着复述某本书里的情节、经历或观点。一展开就会
-  写出「《原则》里提到你曾试图理解债券市场」这种句子——那是达利欧的经历。
+  写出「《某某书》里提到你曾经如何如何」这种句子——那是书作者的经历，不是用户的。
 - 材料里的 <收藏清单> 只有书名没有正文。可以据此说方向，但绝不能写
   「《XXX》里提到……」——你没看到那本书的内容。`;
 
@@ -117,8 +117,8 @@ About this particular question (it asks about the user):
   itself — what someone reads and saves shows what they are into. Make clear this
   is inferred from their library, not something they wrote.
 - Name topics and directions only. Do not retell episodes, experiences, or claims
-  from those books; that produces "Principles mentions you tried to systematise the
-  bond market", which is Dalio's life, not the user's.
+  from those books; that produces "Book X mentions you once did such-and-such",
+  which is the author's life, not the user's.
 - A <收藏清单> block carries titles only, no text. Use it for direction, but never
   write "X says..." about those titles — you have not seen their contents.`;
 
@@ -167,7 +167,7 @@ export function userPrompt(
 ): string {
   // 召回里一条用户自己写的都没有时，在问题旁边再钉一句。
   // 同样的约束写在 system prompt 里 4B 压不住——材料摆在眼前时它一定会去
-  // 桥接「书里的经历」和「用户」，产出「《原则》里提到你曾试图理解债券市场」
+  // 桥接「书里的经历」和「用户」，产出「《某某书》里提到你曾经如何如何」
   // 这种句子。放到材料之后、紧挨着问题，小模型的注意力才够。
   const warn = allCollected
     ? lang === "zh"

@@ -12,6 +12,8 @@ export interface StreamOptions {
   maxTokens?: number;
   /** 显式指定上下文窗口。只有学到真值后重试时才传。 */
   numCtx?: number;
+  /** 采样温度。分类这类要稳定输出的调用传 0。 */
+  temperature?: number;
 }
 
 /**
@@ -67,7 +69,7 @@ export function streamChat(
           ...common,
           think: false,
           options: {
-            temperature: 0.3,
+            temperature: opts.temperature ?? 0.3,
             // 原生端点用 num_predict，不是 max_tokens
             num_predict: opts.maxTokens ?? 2000,
             num_ctx: opts.numCtx,
@@ -75,7 +77,7 @@ export function streamChat(
         }
       : {
           ...common,
-          temperature: 0.3,
+          temperature: opts.temperature ?? 0.3,
           // 给够预算：带思考的模型（qwen3 等）会先花几百 token 想，
           // 卡在 400 会导致答案还没写完就被截断
           max_tokens: opts.maxTokens ?? 2000,

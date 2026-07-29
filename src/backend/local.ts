@@ -92,9 +92,9 @@ export class LocalBackend implements AiBackend {
       const since = range?.since;
       const dense = this.store.search(qv, k * 6, th, scope, since);
 
-      // 混合检索：语义那一路对罕见专有名词是盲区。实测「什么是 MOPD」
-      // 最高分 0.439 过不了阈值，插件会回答「库里没有」——而库里有 3 段；
-      // 「Dresdner Kleinwort」前 8 名一条都不命中。字面那一路专治这个。
+      // 混合检索：语义那一路对罕见专有名词是盲区。实测问一个四字母缩写时
+      // 最高分只有 0.439、过不了阈值，插件会回答「库里没有」——而库里有 3 段；
+      // 一个不常见的机构名更是前 8 名一条都不命中。字面那一路专治这个。
       // 关键词命中不受相似度阈值约束，那正是它存在的意义。
       const terms = keyTerms(question);
       const lexical = terms.length ? this.store.keyword(terms, k * 3, scope, since) : [];
@@ -209,7 +209,7 @@ export class LocalBackend implements AiBackend {
   /**
    * 材料的字符预算。按 2 字符/token 保守折算（中文最密的情况）。
    *
-   * 上限不是被上下文卡住的，是被时间卡住的：实测 Qwythos-9B Q8 在这台机器上
+   * 上限不是被上下文卡住的，是被时间卡住的：实测一个 9B 的 8bit 量化模型
    * 38K 字符要 56 秒、76K 字符要 134 秒，而且内存只剩 0.6GB。所以封顶值
    * 按「还能忍的等待时间」定，不是按窗口能装多少定。
    */
@@ -220,14 +220,18 @@ export class LocalBackend implements AiBackend {
 
   // ── 内部 ────────────────────────────────────────────────
 
-  /** 极短的一次分类调用。失败就当「否」——宁可多给材料，不要因为
-   *  分类挂了把正常提问也降级成只有标题。 */
+  /** 极短的一次分类调用。
+   *
+   *  temperature 必须是 0：默认的 0.3 会让同一个问题两次跑出不同答案，
+   *  表现是「有时走收藏清单、有时把书的正文全发进去」，行为看着像随机的。
+   *
+   *  失败就当「否」——宁可多给材料，不要因为分类挂了把正常提问降级成只有标题。 */
   private async aboutUser(question: string, lang: Locale, signal: AbortSignal): Promise<boolean> {
     try {
       let out = "";
       await streamChat(this.settings,
         [{ role: "user", content: aboutUserPrompt(lang, question) }],
-        signal, (c) => (out += c), { maxTokens: 4 });
+        signal, (c) => (out += c), { maxTokens: 4, temperature: 0 });
       return /^\s*(是|yes)/i.test(out.replace(/<think>[\s\S]*?<\/think>/g, "").trim());
     } catch {
       return false;
@@ -251,9 +255,9 @@ export class LocalBackend implements AiBackend {
     } else {
       // 问用户本人时，收藏的书不进材料区，只在末尾列一行标题清单。
       // 不能给空的 <材料 标题="X"></材料>：实测模型会拿旁边那段的内容
-      // 把空壳填上，把微信文章里的话说成是《原则》里的。
+      // 把空壳填上，把另一篇文章里的话说成是这本书里的。
       // 也不能给正文——只要看得到书里的情节，4B 就一定会写出
-      // 「《原则》里提到你曾试图理解债券市场」（那是达利欧的经历）。
+      // 「《某某书》里提到你曾经如何如何」（那其实是书作者的经历）。
       const shown = aboutUser ? hits.filter((h) => !isCollected(h.path)) : hits;
       const listed = aboutUser ? hits.filter((h) => isCollected(h.path)) : [];
       const blocks = shown.map((h, i) =>
