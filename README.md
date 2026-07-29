@@ -172,7 +172,7 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 1. Download the three files from the latest [release](https://github.com/iamtheozzz/lark-knowledge-ai/releases):
    `main.js`, `manifest.json`, `styles.css`
-2. Create the folder `<your vault>/.obsidian/plugins/knowledge-ai/`
+2. Create the folder `<your vault>/.obsidian/plugins/lark-knowledge-ai/`
 3. Put the three files there
 4. Restart Obsidian and enable **Lark Knowledge AI** under *Settings → Community plugins*
 
@@ -200,7 +200,7 @@ ollama pull qwen3.5:9b-mlx           # 16 GB RAM or more
 
 # 3. Plugin files (set VAULT to your vault path)
 VAULT="$HOME/Documents/MyVault"
-DIR="$VAULT/.obsidian/plugins/knowledge-ai"
+DIR="$VAULT/.obsidian/plugins/lark-knowledge-ai"
 mkdir -p "$DIR"
 # Download main.js / manifest.json / styles.css into $DIR from
 # https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest

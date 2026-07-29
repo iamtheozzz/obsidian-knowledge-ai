@@ -174,7 +174,7 @@ ollama pull gemma4:e4b
 
 1. 到 [Releases](https://github.com/iamtheozzz/lark-knowledge-ai/releases) 页下载最新版的三个文件：
    `main.js`、`manifest.json`、`styles.css`
-2. 在你的库里新建目录：`<你的库>/.obsidian/plugins/knowledge-ai/`
+2. 在你的库里新建目录：`<你的库>/.obsidian/plugins/lark-knowledge-ai/`
 3. 把三个文件放进去
 4. 重启 Obsidian，在「设置 → 第三方插件」里启用 **Lark Knowledge AI**
 
@@ -203,7 +203,7 @@ ollama pull qwen3.5:9b-mlx           # 内存 ≥ 16 GB
 
 # 3. 插件文件（把 VAULT 换成你的库路径）
 VAULT="$HOME/Documents/MyVault"
-DIR="$VAULT/.obsidian/plugins/knowledge-ai"
+DIR="$VAULT/.obsidian/plugins/lark-knowledge-ai"
 mkdir -p "$DIR"
 # 从 https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest
 # 下载 main.js / manifest.json / styles.css 到 $DIR
