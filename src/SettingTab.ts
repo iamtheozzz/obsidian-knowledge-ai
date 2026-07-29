@@ -332,7 +332,10 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         .setName(t("index.rebuildFull"))
         .setDesc(t("index.rebuildDesc"))
         .addButton((b) =>
-          b.setButtonText(t("index.rebuildFull")).setDestructive().onClick(async () => {
+          // setWarning 已被 setDestructive 取代，但后者是 1.13.0 才有的，
+          // 而 minAppVersion 是 1.7.2——用了会触发 no-unsupported-api。
+          // 等 1.13 普及之后再换。
+          b.setButtonText(t("index.rebuildFull")).setWarning().onClick(async () => {
             b.setDisabled(true);
             await this.plugin.rebuildIndex();
             b.setDisabled(false);
