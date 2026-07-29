@@ -1,588 +1,581 @@
-[English](README.en.md) · **简体中文**
+**English** · [简体中文](README.zh-CN.md)
 
-# Knowledge AI 
+# Knowledge AI
 
-本地的飞书/Lark知识问答，完全免费，无限用量，全本地部署。用自然语言问你的 Obsidian 库。语义检索覆盖笔记和 PDF，回答附带可点击的出处，**全部在本机运行**——没有任何数据离开你的电脑。
-> 想要的是这种体验：按一下快捷键，弹出一个搜索框，直接问「我记过哪些关于 XXX 的方法」，
-> 而不是打开右侧栏、再手动指定要读哪个文件。
+A local alternative to enterprise knowledge-QA products like Feishu/Lark — free, unmetered, and entirely on your own machine. Ask your Obsidian vault in natural language. Semantic and keyword search over notes and PDFs, answers with clickable citations, **nothing ever leaves your computer**.
 
----
-
-## 声明
-
-按 Obsidian 的[开发者政策](https://docs.obsidian.md/Developer+policies)，以下两项需要明确告知：
-
-**网络使用 —— 默认完全离线。**
-
-插件唯一的出网目标是你在设置里填的那个端点。默认值 `http://localhost:11434`
-是**本机回环地址**（`127.0.0.1`），数据走操作系统内部，根本不经过网卡。
-**装好之后断网也能正常用**：建索引、提问、改写全都不需要联网。
-
-只有安装时需要网络——下载 Obsidian、Ollama 和模型，一次性的。
-
-不含遥测、不含广告、不含自更新机制。源码里只有 `localhost` 这一个地址。
-
-唯一的例外：如果你**主动**把端点改成云服务商的地址（比如 OpenAI），
-笔记内容就会发往那个服务商。插件不阻止你这么做，但那是你的显式选择。
-
-**库外文件访问** —— 向量索引写在 Obsidian 库**之外**（默认为系统应用数据目录，
-如 macOS 的 `~/Library/Application Support/knowledge-ai/`），位置可在设置里更改。
-
-为什么不放在库里：索引是本机计算产物，规模随库增长到几十甚至上百 MB。
-放进 `.obsidian/` 会被 Obsidian Sync、obsidian-git 等同步工具一起搬来搬去，
-既浪费带宽也毫无意义——换台机器还是要重算。这部分读写用的是 Node 的 `fs`，
-所以插件标记为 `isDesktopOnly`。
-
-除此之外，插件读写你库内的文件一律走 Obsidian 的 Vault API。
+> The experience this is built for: hit a shortcut, a search box appears, type
+> "what have I written about X" — no opening a sidebar, no picking files by hand first.
 
 ---
 
-## 截图
+## Disclosures
 
-**主页** —— 接管新标签页，一个居中的搜索框，点一下或直接打字就开始问。
+Per Obsidian's [developer policies](https://docs.obsidian.md/Developer+policies), two things need stating explicitly:
 
-![主页](docs/home.png)
+**Network use — fully offline by default.**
 
-**提问** —— 快捷键唤起居中弹窗，答案流式输出，末尾附可点击的出处。
+The plugin's only outbound destination is the endpoint you configure in settings.
+The default, `http://localhost:11434`, is a **loopback address** (`127.0.0.1`) —
+traffic stays inside the operating system and never touches a network interface.
+**Once installed, it works with networking switched off entirely**: indexing, asking
+and rewriting need no connection.
 
-![提问](docs/ask.jpeg)
+Internet is only needed to install — downloading Obsidian, Ollama and the models. Once.
 
-**边看边问** —— 右侧面板常驻。问「总结我在看的这一页」时自动只读 PDF 当前翻到的那一页，引用可以点回原页。
+No telemetry, no ads, no self-update mechanism. `localhost` is the only address in the source.
 
-![面板](docs/pane.jpeg)
+The one exception: if you **deliberately** point the endpoint at a cloud provider
+(OpenAI, say), your note content goes to that provider. The plugin won't stop you,
+but that is your explicit choice.
+
+**File access outside the vault** — the vector index is written **outside** your
+Obsidian vault (by default the OS app-data directory, e.g.
+`~/Library/Application Support/knowledge-ai/` on macOS). The location is configurable.
+
+Why not inside the vault: the index is a machine-local build artifact that grows to
+tens or hundreds of megabytes. Putting it in `.obsidian/` means Obsidian Sync,
+obsidian-git and friends carry it around — wasted bandwidth for something that has to
+be recomputed on another machine anyway. That part uses Node's `fs`, which is why the
+plugin is marked `isDesktopOnly`.
+
+Everything else — reading and writing files inside your vault — goes through Obsidian's Vault API.
 
 ---
 
-## 目录
+## Screenshots
 
-- [声明](#声明)
-- [它能做什么](#它能做什么)
-- [安装](#安装)
+**Home** — takes over new tabs. A centered search box; click it or just start typing.
+
+![Home](docs/home.png)
+
+**Ask** — a shortcut opens the centered modal. Answers stream in with clickable sources at the end.
+
+![Ask](docs/ask.jpeg)
+
+**Read and ask side by side** — the right pane stays open. Asking "summarise the page I'm on" reads only the PDF page you're currently viewing, and the citation links back to it.
+
+![Pane](docs/pane.jpeg)
+
+---
+
+## Contents
+
+- [Disclosures](#disclosures)
+- [What it does](#what-it-does)
+- [Installation](#installation)
   - [1. Obsidian](#1-obsidian)
   - [2. Ollama](#2-ollama)
-  - [3. 下载模型](#3-下载模型)
-  - [4. 安装插件](#4-安装插件)
-  - [5. 首次配置](#5-首次配置)
-- [建立索引](#建立索引)
-- [使用](#使用)
-- [设置项详解](#设置项详解)
-- [常见问题](#常见问题)
-- [隐私与网络](#隐私与网络)
-- [和同类方案的对比](#和同类方案的对比)
+  - [3. Pull the models](#3-pull-the-models)
+  - [4. Install the plugin](#4-install-the-plugin)
+  - [5. First-run setup](#5-first-run-setup)
+- [Building the index](#building-the-index)
+- [Usage](#usage)
+- [Settings reference](#settings-reference)
+- [FAQ](#faq)
+- [Privacy and network](#privacy-and-network)
+- [How it compares](#how-it-compares)
 
 ---
 
-## 它能做什么
+## What it does
 
-**问答**
-- 语义检索 + 关键词检索混合，覆盖 Markdown 笔记和 PDF
-- 回答末尾附参考资料，点击直接跳到对应笔记的行或 PDF 的页
-- 追问时自动把「那第二点展开说说」改写成可检索的独立问题
-- 支持贴图提问（截图 `Cmd+V` 直接粘进去）
+**Ask**
+- Hybrid retrieval — semantic *and* keyword search, over Markdown notes and PDFs
+- Every answer ends with references; click one to jump to the exact line or PDF page
+- Follow-ups like "expand on the second point" are rewritten into standalone queries before searching
+- Paste screenshots straight into the question box
 
-**三个入口，一套对话**
-- 居中弹窗（主入口，快问快答）
-- 右侧面板（常驻，边看笔记边追问）
-- 中间面板（长对话读起来舒服）
+**Three surfaces, one conversation**
+- Centered modal (the main entry — ask and go)
+- Right sidebar (persistent, for reading and asking side by side)
+- Center pane (comfortable for long conversations)
 
-对话可以在三者之间搬运，也可以接管新标签页显示成一个主页。
+Conversations move freely between all three, and can take over new tabs as a home page.
 
-**理解你在看什么**
-- 问「这篇论文讲了什么」→ 自动限定到当前打开的文件
-- 问「这页讲了什么」→ 自动限定到 PDF 当前翻到的那一页
-- 问「上周记了什么」→ 按文件修改时间筛选
-- 也可以手动点 `+` 指定要在哪几个文件里找
+**It knows what you're looking at**
+- "What is this paper about?" → scoped to the file you have open
+- "What's on this page?" → scoped to the PDF page you're currently on
+- "What did I write last week?" → filtered by file modification time
+- Or click `+` to pick specific files yourself
 
-**改写**
-- 选中一段 → 右键「改写选中内容」→ 六个预置指令或自己写
-- 生成后显示行级 diff，确认无误才写回笔记
+**Rewrite**
+- Select a passage → right-click → *Rewrite selection* → six presets, or write your own instruction
+- The result is shown as a line-level diff; nothing is written until you confirm
 
-**索引**
-- 增量更新：只处理改动过的文件
-- 自动监听：库内文件增删改后自动更新（可关）
-- PDF 文字提取带缓存，重建索引不会重来
-- 可选：给图片生成文字描述，让图片本身能被搜到
+**Indexing**
+- Incremental — only changed files are reprocessed
+- Automatic — watches the vault and updates itself (can be turned off)
+- PDF text extraction is cached, so rebuilds don't re-parse PDFs
+- Optional: describe images with a vision model so pictures become searchable
 
 ---
 
-## 安装
+## Installation
 
-> **赶时间？** 如果你在用 Claude Code、Codex 这类命令行 AI，
-> 可以直接把这份 README 丢给它，让它照着装——见下方[方式三](#方式三把这份-readme-丢给-ai-agent)。
+> **In a hurry?** If you use Claude Code, Codex or a similar CLI agent, just hand it
+> this README and let it do the install — see [Method 3](#method-3-hand-this-readme-to-an-ai-agent).
 
 ### 1. Obsidian
 
-从 [obsidian.md](https://obsidian.md) 下载安装。需要 **1.5.0 或更高**版本。
+Download from [obsidian.md](https://obsidian.md). Requires **1.5.0 or newer**.
 
-本插件是 `isDesktopOnly`，**只支持桌面端**（macOS / Windows / Linux），手机端用不了。
+This plugin is `isDesktopOnly` — **desktop only** (macOS / Windows / Linux). It will not run on mobile.
 
 ### 2. Ollama
 
-Ollama 负责在本机跑模型。从 [ollama.com/download](https://ollama.com/download) 下载安装。
+Ollama runs the models locally. Download from [ollama.com/download](https://ollama.com/download).
 
-安装后它会作为后台服务运行，默认监听 `http://localhost:11434`。验证一下：
+After installing it runs as a background service on `http://localhost:11434`. Verify:
 
 ```bash
 ollama --version
 ```
 
-### 3. 下载模型
+### 3. Pull the models
 
-需要两类模型：**嵌入模型**（建索引用，必装）和**对话模型**（回答问题用）。
+You need two kinds: an **embedding model** (for the index — required) and a **chat model** (for answers).
 
-#### 嵌入模型（必装）
+#### Embedding model (required)
 
 ```bash
 ollama pull bge-m3
 ```
 
-[bge-m3](https://ollama.com/library/bge-m3) · 约 1.2 GB · 1024 维 · 多语言
+[bge-m3](https://ollama.com/library/bge-m3) · ~1.2 GB · 1024 dimensions · multilingual
 
-**如果你的库里有中文、日文或其他非英语内容，请务必用这个。** 它是目前本地能跑的多语言嵌入模型里质量最好的。纯英文库可以换更小的 `nomic-embed-text`（274 MB），但换模型会让已有向量全部失效、必须重建索引。
+**If your vault contains any non-English content, use this one.** It is the best multilingual embedding model that runs locally today. An English-only vault can use the smaller `nomic-embed-text` (274 MB) instead — but note that switching embedding models invalidates every existing vector and forces a full rebuild.
 
-#### 对话模型
+#### Chat model
 
-**Apple Silicon（M 系列芯片）用户看这里。** Ollama 为这几个模型提供了 `-mlx` 变体，
-用 Apple 原生的 MLX 后端。实测同尺寸下比 GGUF 快约 1.5 倍，依据度也更好，
-**有 MLX 版就优先用 MLX 版**。
+**Apple Silicon users, read this.** Ollama ships `-mlx` variants of these models that use Apple's native MLX backend. Measured at roughly **1.5× faster than the equivalent GGUF** at the same size, with better grounding too. **If an MLX build exists, use it.**
 
-| 模型 | 大小 | 解码速度* | 适合 |
+| Model | Size | Decode speed* | Best for |
 |---|---|---|---|
-| [`qwen3.5:4b-mlx`](https://ollama.com/library/qwen3.5:4b-mlx) | 4.0 GB | ~62 tok/s | 内存紧张，或想要秒回 |
-| [`qwen3.5:9b-mlx`](https://ollama.com/library/qwen3.5:9b-mlx) | 8.9 GB | ~38 tok/s | **推荐**，质量与速度平衡 |
-| [`gemma4:e4b-mlx`](https://ollama.com/library/gemma4:e4b-mlx) | 8.8 GB | — | 另一种风格，可对比着试 |
+| [`qwen3.5:4b-mlx`](https://ollama.com/library/qwen3.5:4b-mlx) | 4.0 GB | ~62 tok/s | Tight on RAM, or you want instant answers |
+| [`qwen3.5:9b-mlx`](https://ollama.com/library/qwen3.5:9b-mlx) | 8.9 GB | ~38 tok/s | **Recommended** — best balance |
+| [`gemma4:e4b-mlx`](https://ollama.com/library/gemma4:e4b-mlx) | 8.8 GB | — | A different flavour, worth comparing |
 
-<sub>* 在 M4 Pro（14 核 CPU / 20 核 GPU / 24 GB 统一内存）上实测，仅供相对参考。</sub>
+<sub>* Measured on an M4 Pro (14-core CPU / 20-core GPU / 24 GB unified memory). Treat as relative, not absolute.</sub>
 
 ```bash
-# 推荐：先装这个
+# Recommended
 ollama pull qwen3.5:9b-mlx
 
-# 机器吃紧就用 4b
+# If the machine is tight on memory
 ollama pull qwen3.5:4b-mlx
 
-# 想对比另一种风格
+# To compare a different model family
 ollama pull gemma4:e4b-mlx
 ```
 
-**Intel Mac / Windows / Linux 用户**：MLX 是 Apple 专有的，你们用不了，
-去掉 `-mlx` 后缀即可，其余完全一样：
+**Intel Mac / Windows / Linux**: MLX is Apple-only. Drop the `-mlx` suffix; everything else is identical:
 
 ```bash
 ollama pull qwen3.5:9b
 ```
 
-各尺寸和量化版本见 [qwen3.5 全部标签](https://ollama.com/library/qwen3.5/tags) ·
-[gemma4 全部标签](https://ollama.com/library/gemma4/tags)。
+All sizes and quantisations: [qwen3.5 tags](https://ollama.com/library/qwen3.5/tags) · [gemma4 tags](https://ollama.com/library/gemma4/tags)
 
-> **参数量和量化，哪个更影响速度？** 实测结论是**量化影响更大**。
-> 同样 9B，4bit 比 8bit 快 1.5 倍；而 4B 换到 9B 只慢 1.65 倍（不是参数比的 2.25 倍）。
-> 内存够的话，优先选大模型的低比特量化，而不是小模型的高比特量化。
+> **Which matters more for speed, parameter count or quantisation?** Measured answer:
+> **quantisation**. At the same 9B, 4-bit is 1.5× faster than 8-bit; going from 4B to 9B
+> only costs 1.65× (not the 2.25× the parameter ratio would suggest).
+> With enough RAM, prefer a bigger model at lower precision over a smaller one at higher precision.
 
-#### 视觉模型（可选，想贴图提问才需要）
+#### Vision model (optional — only if you want to ask about images)
 
-如果你要贴截图提问，需要一个能看图的模型。**注意：Ollama 的 MLX 后端目前收不到图片**——模型只会拿到一个占位符，然后一本正经地说"我看不到图片"。所以视觉模型必须用 GGUF 版本（就是不带 `-mlx` 后缀的那些）。
+To ask questions about screenshots you need a model that can see. **Note: Ollama's MLX backend cannot currently receive images** — the model gets a placeholder and will confidently tell you it can't see anything. So the vision model must be a GGUF build (i.e. *without* the `-mlx` suffix).
 
 ```bash
 ollama pull gemma4:e4b
 ```
 
-插件的设置页里「视觉模型」是**单独一项**，可以和对话模型配不同的：文字质量和看图能力目前很难兼得。配好后一定要点旁边的「测试」实际验证——模型的能力标签不可信。
+The plugin has a **separate** "Vision model" setting so it can differ from your chat model — text quality and vision rarely come in the same package. After setting it, hit **Test**: capability tags reported by models are unreliable, so verify for real.
 
-### 4. 安装插件
+### 4. Install the plugin
 
-**方式一：BRAT（推荐，能自动更新）**
+**Method 1: BRAT (recommended — auto-updates)**
 
-1. 在 Obsidian 里安装社区插件 **BRAT**（Beta Reviewers Auto-update Tool）
-2. 打开 BRAT 设置 → `Add Beta Plugin`
-3. 填入 `iamtheozzz/obsidian-knowledge-ai`
-4. 完成，之后有新版本会自动提示更新
+1. Install the community plugin **BRAT** (Beta Reviewers Auto-update Tool)
+2. Open BRAT settings → `Add Beta Plugin`
+3. Enter `iamtheozzz/obsidian-knowledge-ai`
+4. Done — you'll be prompted when new versions ship
 
-**方式二：手动安装**
+**Method 2: Manual**
 
-1. 到 [Releases](https://github.com/iamtheozzz/obsidian-knowledge-ai/releases) 页下载最新版的三个文件：
-   `main.js`、`manifest.json`、`styles.css`
-2. 在你的库里新建目录：`<你的库>/.obsidian/plugins/knowledge-ai/`
-3. 把三个文件放进去
-4. 重启 Obsidian，在「设置 → 第三方插件」里启用 **Knowledge AI**
+1. Download the three files from the latest [release](https://github.com/iamtheozzz/obsidian-knowledge-ai/releases):
+   `main.js`, `manifest.json`, `styles.css`
+2. Create the folder `<your vault>/.obsidian/plugins/knowledge-ai/`
+3. Put the three files there
+4. Restart Obsidian and enable **Knowledge AI** under *Settings → Community plugins*
 
-> `.obsidian` 是隐藏目录。macOS 上在 Finder 里按 `Cmd+Shift+.` 显示隐藏文件。
+> `.obsidian` is hidden. On macOS press `Cmd+Shift+.` in Finder to reveal hidden files.
 
-**方式三：把这份 README 丢给 AI agent**
+**Method 3: Hand this README to an AI agent**
 
-如果你在用 Claude Code、Codex 或类似的命令行 AI，可以直接对它说：
+If you use Claude Code, Codex or similar, just say:
 
-> 照着这份 README 帮我把 Knowledge AI 装好（附上本文件）
+> Install Knowledge AI for me following this README (attach this file)
 
-前面的步骤（装 Obsidian、装 Ollama、拉模型、放插件文件、写配置）它都能代劳。
-下面是等价的命令，你也可以自己执行：
+Everything up to the last step — installing Obsidian and Ollama, pulling models, placing the plugin files, writing the config — can be done for you. The equivalent commands, if you'd rather run them yourself:
 
 ```bash
-# 1. Obsidian 和 Ollama
+# 1. Obsidian and Ollama
 brew install --cask obsidian
 brew install ollama
-ollama serve &                       # macOS 装完要先把服务跑起来
+ollama serve &                       # macOS: start the service after installing
 
-# 2. 模型（嵌入必装，对话按内存二选一）
+# 2. Models (embedding required; pick a chat model by available RAM)
 ollama pull bge-m3
-ollama pull qwen3.5:9b-mlx           # 内存 ≥ 16 GB
-# ollama pull qwen3.5:4b-mlx         # 内存 < 16 GB 用这个
-#   非 Apple Silicon 去掉 -mlx 后缀
+ollama pull qwen3.5:9b-mlx           # 16 GB RAM or more
+# ollama pull qwen3.5:4b-mlx         # under 16 GB
+#   Not on Apple Silicon? Drop the -mlx suffix.
 
-# 3. 插件文件（把 VAULT 换成你的库路径）
+# 3. Plugin files (set VAULT to your vault path)
 VAULT="$HOME/Documents/MyVault"
 DIR="$VAULT/.obsidian/plugins/knowledge-ai"
 mkdir -p "$DIR"
-# 从 https://github.com/iamtheozzz/obsidian-knowledge-ai/releases/latest
-# 下载 main.js / manifest.json / styles.css 到 $DIR
+# Download main.js / manifest.json / styles.css into $DIR from
+# https://github.com/iamtheozzz/obsidian-knowledge-ai/releases/latest
 
-# 4. 最小配置（其余全部走默认值）
+# 4. Minimal config (everything else uses defaults)
 cat > "$DIR/data.json" <<'JSON'
 { "chatModel": "qwen3.5:9b-mlx" }
 JSON
 ```
 
-**agent 做不了的最后一步**：打开 Obsidian →「设置 → 第三方插件」→ 启用 **Knowledge AI**。
-Obsidian 没有提供命令行开关，这一下必须你自己点。
+**The one step an agent cannot do**: open Obsidian → *Settings → Community plugins* → enable **Knowledge AI**. Obsidian exposes no CLI switch for this; you have to click it.
 
-启用之后**不用手动建索引**——`autoIndex` 默认开着，
-库里任何文件有变动，15 秒后就会自动开始建。想立刻开始就去设置页点「开始建立索引」。
+Once enabled you **don't need to build the index manually** — `autoIndex` is on by default, so the first file change kicks it off within 15 seconds. To start immediately, use the *Build index* button in settings.
 
-> **配置为什么只写一行？** 插件的设置是 `默认值 + data.json` 合并出来的，
-> 所以只需要写你要改的项。端点（`localhost:11434/v1`）、嵌入模型（`bge-m3`）、
-> 自动索引这些默认值都是对的，不用重复写。
+> **Why is the config a single line?** Settings are `defaults + data.json` merged, so you
+> only write what you want to change. The endpoint (`localhost:11434/v1`), embedding model
+> (`bge-m3`) and auto-indexing defaults are already correct.
 
-#### 内存对照
+#### Memory guide
 
-对话模型的选择主要看内存，不是看 CPU：
+Choosing a chat model is mostly about RAM, not CPU:
 
-| 内存 | 建议 |
+| RAM | Recommendation |
 |---|---|
-| 8 GB | 只能用 `qwen3.5:4b-mlx`，并在设置里关掉「索引 PDF」 |
-| 16 GB | `4b` 舒服，`9b` 勉强（同时开别的应用会吃紧） |
-| 24 GB 以上 | `9b` 舒服 |
+| 8 GB | `qwen3.5:4b-mlx` only, and turn off "Index PDFs" |
+| 16 GB | `4b` is comfortable, `9b` is tight alongside other apps |
+| 24 GB+ | `9b` is comfortable |
 
-9B 模型加上上下文缓存实测要占 10 GB 以上。内存不够时系统会开始交换，
-表现是「能跑但极慢」，而不是报错——所以别硬上。
+A 9B model plus its context cache measures over 10 GB in practice. When RAM runs short macOS starts swapping — the symptom is "it works but is unbearably slow", not an error. Don't force it.
 
-### 5. 首次配置
+### 5. First-run setup
 
-打开「设置 → Knowledge AI」：
+Open *Settings → Knowledge AI*:
 
-1. **端点 URL** —— 保持默认 `http://localhost:11434/v1`
-2. **对话模型** —— 下拉框会自动列出你已安装的模型，选一个
-3. 点旁边的 **测试** —— 应该显示连接成功、首字延迟和生成速度
-4. **嵌入模型** —— 默认 `bge-m3`，点「测试」确认可用
+1. **Endpoint URL** — leave as `http://localhost:11434/v1`
+2. **Chat model** — the dropdown lists what you've installed; pick one
+3. Hit **Test** — you should see connection, time-to-first-token and tokens/sec
+4. **Embedding model** — defaults to `bge-m3`; hit its **Test** too
 
-四步都通过就可以建索引了。
+All four green means you're ready to index.
 
 ---
 
-## 建立索引
+## Building the index
 
-插件要先把你的库变成可检索的向量索引，才能回答问题。
+The plugin turns your vault into a searchable vector index before it can answer anything.
 
-### 第一次建索引
+### The first build
 
-设置页 → 「索引状态」→ 点 **开始建立索引**。
+Settings → *Index status* → **Build index**.
 
-状态栏会显示进度（`索引中 42/318`）。这个过程可以放着不管，Obsidian 照常用。
+Progress shows in the status bar (`Indexing 42/318`). You can ignore it and keep using Obsidian.
 
-**要多久？** 取决于库的大小。参考量级：
+**How long?** Depends on vault size. Rough orders of magnitude:
 
-| 库规模 | 大致耗时 |
+| Vault | Approximate time |
 |---|---|
-| 几百篇笔记，无 PDF | 1–3 分钟 |
-| 加上几十个 PDF | 10–20 分钟 |
-| 上百个 PDF（含大部头教材） | 30 分钟以上 |
+| A few hundred notes, no PDFs | 1–3 minutes |
+| Plus a few dozen PDFs | 10–20 minutes |
+| Hundreds of PDFs (including textbooks) | 30+ minutes |
 
-PDF 是主要开销——一本几百页的书会切成上千个片段。设置里可以先关掉「索引 PDF」，只索引笔记，跑通了再打开。
+PDFs dominate — a several-hundred-page book becomes thousands of chunks. You can turn off "Index PDFs" first, get notes working, then enable it.
 
-### 之后
+### After that
 
-**默认自动增量更新。** 你改了、加了、删了文件，插件会在 15 秒防抖后自动更新索引，只处理变动过的文件——没变的一个都不重跑。
+**Incremental updates happen automatically.** Add, edit or delete files and the index updates itself after a 15-second debounce, touching only what changed — unchanged files are never re-embedded.
 
-如果你关掉了「自动索引」，就回设置页手动点「更新索引」。
+If you turn off "Auto-index", use the *Update index* button in settings instead.
 
-### 什么时候需要重建
+### When a rebuild is needed
 
-只有两种情况：
+Only two situations:
 
-- **换了嵌入模型** —— 不同模型的向量不可比，必须全部重算
-- **怀疑索引损坏** —— 检索结果明显不对劲
+- **You changed the embedding model** — vectors from different models aren't comparable
+- **You suspect the index is broken** — results are obviously wrong
 
-设置里的「重建」按钮会清空后全量重跑。**PDF 的文字提取有缓存，重建时不会重新解析 PDF**，所以比第一次快得多。
+The **Rebuild** button wipes and re-runs everything. **PDF text extraction is cached, so rebuilds don't re-parse PDFs** — much faster than the first run.
 
 ---
 
-## 使用
+## Usage
 
-### 提问
+### Asking
 
-| 操作 | 效果 |
+| Action | Result |
 |---|---|
-| 自定的快捷键 | 唤起居中弹窗（**默认没有绑定**，见下） |
-| 点左侧栏的图标 | 同上 |
-| 命令面板 → `Knowledge AI: 提问` | 同上 |
+| A hotkey you assign | Open the centered modal (**none is bound by default** — see below) |
+| Click the ribbon icon | Same |
+| Command palette → `Knowledge AI: Ask` | Same |
 
-输入问题，回车。答案流式输出，末尾附参考资料。
+Type and press Enter. Answers stream in, with references at the end.
 
-`Enter` 提问 · `Shift + Enter` 换行 · `Esc` 中止生成（再按一次关窗）
+`Enter` to ask · `Shift + Enter` for a newline · `Esc` to stop generating (press again to close)
 
-> 插件不预设快捷键。想要的话到「设置 → 快捷键」搜 `Knowledge AI` 自己绑一个。
+> No hotkey ships by default. Bind one under *Settings → Hotkeys* → search `Knowledge AI`.
 
-### 限定检索范围
+### Narrowing the search
 
-插件会自动识别这几类问法：
+These phrasings are recognised automatically:
 
-| 你问 | 它做什么 |
+| You ask | What happens |
 |---|---|
-| 「**这篇**论文讲了什么」 | 只在当前打开的文件里找 |
-| 「**这页**主要内容是什么」 | 只读 PDF 当前翻到的那一页 |
-| 「**上周**记了什么」 | 只找最近两周修改过的文件 |
-| 「最近三个月读了什么」 | 按时间过滤，支持中文数字 |
+| "What is **this paper** about?" | Searches only the file you have open |
+| "What's on **this page**?" | Reads only the current PDF page |
+| "What did I write **last week**?" | Only files modified in the last two weeks |
+| "What have I read in the last three months?" | Time-filtered |
 
-也可以手动指定：在右侧/中间面板的输入框上方点 **`+`**，选一个或多个文件，之后所有提问都只在这些文件里找。文件列表按最近打开排序。
+You can also be explicit: click **`+`** above the input in the side or center pane and pick one or more files — every question then searches only those. The file list is ordered by most recently opened.
 
-### 面板
+### Panes
 
-- 命令面板 → `在右侧面板中打开` / `在中间面板中打开`
-- 答案下方的 **「在面板中打开」** 可以把当前对话整体搬过去
-- 面板标题栏的图标可以在右侧和中间之间来回移动
-- 输入框旁的 **↺** 清空对话开始新一轮（已选的文件范围会保留）
+- Command palette → `Open in right pane` / `Open in center pane`
+- **Open in pane** below an answer moves the whole conversation over
+- The icon in the pane header moves it between right and center
+- **↺** next to the input clears the conversation (your file selection is kept)
 
-对话会随 Obsidian 的工作区一起保存，折叠侧栏、重启软件都不会丢。
+Conversations are saved with the Obsidian workspace — collapsing the sidebar or restarting won't lose them.
 
-### 改写笔记
+### Rewriting notes
 
-选中一段文字，然后：
+Select some text, then:
 
-- 右键 → **改写选中内容**，或
-- 命令面板 → `Knowledge AI: 改写选中内容`
+- Right-click → **Rewrite selection**, or
+- Command palette → `Knowledge AI: Rewrite selection`
 
-六个预置指令（更简洁 / 更清楚 / 更正式 / 提炼要点 / 展开说明 / 译成英文），也可以自己写指令。
+Six presets (tighter / clearer / more formal / key points / expand / to English), or write your own instruction.
 
-生成后会显示**行级 diff**——红色删除线是原文，绿色是新内容。确认无误再点「替换选中内容」，**不确认不会动你的笔记**。
+The result is shown as a **line-level diff** — struck-through red is the original, green is new. Nothing touches your note until you click *Replace selection*.
 
-### 贴图提问
+### Asking about images
 
-- 截图后在输入框里 `Cmd/Ctrl + V`
-- 或把图片文件拖进弹窗
-- 或点当前笔记里的图片缩略图
+- `Cmd/Ctrl + V` a screenshot into the input
+- Drag an image file into the modal
+- Or click a thumbnail of an image embedded in the current note
 
-图片会自动缩到长边 1024 再发送——视觉模型按图块计费，Retina 截图不缩的话一张就能占满上下文。
+Images are downscaled to 1024px on the long edge before sending — vision models bill by image tile, and an un-resized Retina screenshot can fill the entire context on its own.
 
-### 主页
+### Home page
 
-命令面板 → `打开主页`，或在设置里打开「用主页接管新标签页」。
+Command palette → `Open home`, or enable "Replace new tab with home" in settings.
 
-主页是一个居中的搜索框，点一下（或直接打字）就唤起提问弹窗。标题栏有个按钮可以切换「简洁模式」，只留标题和搜索框。
+The home page is a centered search box — click it (or just start typing) to open the ask modal. A button in the header toggles "minimal mode", which leaves only the title and the box.
 
-> 如果你装了 Beautitab、Home tab 这类也接管新标签页的插件，两边会抢同一个空标签页，**只能开一个**。
+> If you also use Beautitab, Home tab or similar, both will fight over the same empty tab. **Enable only one.**
 
 ---
 
-## 设置项详解
+## Settings reference
 
-### 模型
+### Model
 
-| 项 | 说明 |
+| Setting | Notes |
 |---|---|
-| **端点 URL** | 任意 OpenAI 兼容端点。Ollama 默认 `http://localhost:11434/v1` |
-| **对话模型** | 下拉框自动列出端点上可用的模型 |
-| **视觉模型** | 提问带图片时改用它；留空则沿用对话模型 |
-| **API Key** | 只有用云端点时才需要，本地 Ollama 留空 |
+| **Endpoint URL** | Any OpenAI-compatible endpoint. Ollama is `http://localhost:11434/v1` |
+| **Chat model** | Dropdown lists models available on the endpoint |
+| **Vision model** | Used when a question includes images; falls back to the chat model if blank |
+| **API key** | Only needed for cloud endpoints; leave blank for local Ollama |
 
-### 语言
+### Language
 
-| 项 | 说明 |
+| Setting | Notes |
 |---|---|
-| **界面语言** | 默认跟随 Obsidian 的设置，可强制中文或英文 |
-| **回答语言** | 默认跟随你提问时用的语言 |
+| **Interface language** | Follows your Obsidian setting by default |
+| **Answer language** | Follows the language you asked in by default |
 
-### 索引
+### Index
 
-| 项 | 默认 | 说明 |
+| Setting | Default | Notes |
 |---|---|---|
-| **内部知识检索** | 开 | 开：严格依据笔记作答并附引用。关：笔记只作参考，模型可自由发挥 |
-| **索引范围** | 全库 | 可以只索引指定的几个文件夹 |
-| **索引 PDF** | 开 | PDF 会显著增加首次索引时间 |
-| **索引图片内容** | 关 | 用视觉模型给每张图生成描述。一张十几秒，开之前先测试视觉模型 |
-| **嵌入模型** | `bge-m3` | ⚠️ 换模型会让已有向量全部失效，必须重建索引 |
-| **嵌入端点** | 跟随主端点 | 对话用云端、嵌入用本地时在这里单独填 |
-| **存储位置** | 库之外 | 默认放在系统应用数据目录，避免被 Obsidian Sync 同步走 |
-| **自动索引** | 开 | 文件变动后自动增量更新（15 秒防抖） |
+| **Vault-grounded answers** | On | On: answer strictly from your notes, with citations. Off: notes are optional context and the model may answer freely |
+| **Scope** | Whole vault | Restrict indexing to specific folders |
+| **Index PDFs** | On | PDFs dominate first-build time |
+| **Index image content** | Off | Describe each image with the vision model. ~10s per image — test the vision model first |
+| **Embedding model** | `bge-m3` | ⚠️ Changing this invalidates every vector and forces a full rebuild |
+| **Embedding endpoint** | Follows main | Set separately if chat runs in the cloud but embeddings stay local |
+| **Storage location** | Outside the vault | Defaults to the OS app-data directory so it isn't synced |
+| **Auto-index** | On | Incremental update on file changes (15s debounce) |
 
-### 高级
+### Advanced
 
-| 项 | 默认 | 说明 |
+| Setting | Default | Notes |
 |---|---|---|
-| **召回段数** | 8 | 每次提问最多取几段材料。调大会明显吃上下文和时间 |
-| **相似度阈值** | 0.5 | 低于这个分数的段落直接丢弃 |
+| **Passages to retrieve** | 8 | Raising it noticeably costs context and time |
+| **Similarity threshold** | 0.5 | Passages below this score are discarded |
 
-> **关于阈值**：0.5 是实测的分界——真正相关的段落通常在 0.60 以上，
-> 完全无关的内容也能拿到 0.35–0.49。调到 0.3 会把无关材料一起塞给模型。
+> **About the threshold**: 0.5 is where the measurements land — genuinely relevant passages
+> usually score above 0.60, while completely unrelated content still reaches 0.35–0.49.
+> Dropping to 0.3 feeds the model irrelevant material.
 >
-> 但有一个例外：**跨语言检索的分数系统性偏低**。中文提问命中法语原文时
-> 可能只有 0.50 出头。如果你的库里有外语原版书且搜不到，试试把阈值调到 0.45。
+> One exception: **cross-language retrieval scores systematically lower**. A Chinese question
+> matching a French original may only reach the low 0.50s. If your vault has foreign-language
+> books that never surface, try 0.45.
 
-### 界面
+### Interface
 
-| 项 | 默认 | 说明 |
+| Setting | Default | Notes |
 |---|---|---|
-| **显示侧边栏图标** | 开 | 左侧栏的唤起图标 |
-| **用主页接管新标签页** | 关 | 和 Beautitab 这类插件冲突，只能开一个 |
+| **Show ribbon icon** | On | The launcher icon in the left ribbon |
+| **Replace new tab with home** | Off | Conflicts with Beautitab and similar — enable only one |
 
 ---
 
-## 常见问题
+## FAQ
 
-**问：点「测试」显示连不上**
+**Test says it can't connect**
 
-确认 Ollama 在运行：终端执行 `ollama list` 能列出模型就是正常的。macOS 上 Ollama 装完需要手动启动一次（在应用程序里打开）。
+Check Ollama is running: `ollama list` in a terminal should list your models. On macOS you may need to launch the Ollama app once after installing.
 
-**问：回答说「库里没有找到相关内容」，但我确定有**
+**It says nothing relevant was found, but I know it's there**
 
-三种可能：
+Three possibilities:
 
-1. **索引还没跑完或没建** —— 看设置页的「索引状态」
-2. **相似度不够** —— 试试把问题说得更接近笔记里的原话，或调低阈值
-3. **文件类型不支持** —— 目前只索引 `.md` 和 `.pdf`
+1. **The index isn't built or is still running** — check *Index status* in settings
+2. **Similarity too low** — phrase the question closer to your own wording, or lower the threshold
+3. **Unsupported file type** — only `.md` and `.pdf` are indexed
 
-**问：PDF 提取不出文字**
+**A PDF yields no text**
 
-扫描版 PDF（本质是图片）需要 OCR，本插件不支持。设置页的「测试」按钮会告诉你具体是哪个文件、什么原因。
+Scanned PDFs are images and need OCR, which this plugin does not do. The **Test** button in settings will tell you which file failed and why.
 
-**问：回答很慢**
+**Answers are slow**
 
-首字延迟主要花在两处：检索（1–2 秒）和模型 prefill（材料越多越慢）。可以：
+Time to first token goes into two places: retrieval (1–2s) and model prefill (grows with how much material is sent). You can:
 
-- 换更小的模型（`qwen3.5:4b` 比 `9b` 快 1.6 倍）
-- Apple Silicon 上优先用 `-mlx` 变体（比同尺寸 GGUF 快 1.5 倍）
-- 调小「召回段数」
+- Use a smaller model (`qwen3.5:4b` is ~1.6× faster than `9b`)
+- On Apple Silicon prefer the `-mlx` variants (~1.5× faster than equivalent GGUF)
+- Lower "Passages to retrieve"
 
-**问：报错「上下文窗口只有 4096 token」**
+**Error: context window is only 4096 tokens**
 
-从 HuggingFace 直接拉的 GGUF 模型在 Ollama 上默认只给 4096 的窗口。插件会自动识别并重试，但如果反复出现，建议换用 Ollama 官方库里的模型。
+GGUF models pulled straight from HuggingFace get Ollama's 4096 default. The plugin detects this and retries, but if it keeps happening, switch to a model from Ollama's official library.
 
-**问：图片提问时模型说「我看不到图片」**
+**The model says it can't see my image**
 
-Ollama 的 MLX 后端目前不支持图片输入。在设置里把「视觉模型」单独配成一个 GGUF 模型（不带 `-mlx` 后缀），然后点「测试」验证。
+Ollama's MLX backend doesn't support image input. Set "Vision model" separately to a GGUF model (no `-mlx` suffix) and hit **Test** to verify.
 
-**问：索引占多大空间？**
+**How much disk does the index use?**
 
-大致按「每 1000 个片段 4 MB」估算。索引默认存在库之外的系统应用数据目录，不会被 Obsidian Sync 或 git 同步走。设置里可以改位置。
-
----
-
-## 隐私与网络
-
-**所有数据都留在本机。**
-
-插件只会向你在设置里填的那个端点发请求。默认配置下就是 `http://localhost:11434`——你自己电脑上的 Ollama。笔记内容、PDF 文字、提问和回答都不会离开这台机器。
-
-如果你把端点改成云服务商的地址，那笔记内容就会发到那个服务商——这是你的选择，插件不做任何隐藏的请求。
-
-**关于本地文件访问**：插件读取库内文件用的是 Obsidian 的 Vault API。索引文件默认写在库之外（系统应用数据目录），这是刻意的——索引是本机计算产物，几十 MB，放进库里会被 Obsidian Sync 和 git 一起同步走。这部分读写用 Node 的 `fs`，所以插件标记为 `isDesktopOnly`。
-
-**关于流式输出**：模型回答是流式返回的，用的是 Node 的 `http`（Obsidian 的 `requestUrl` 不支持流式，而 `fetch` 在渲染进程里受 CORS 限制）。请求只发往你配置的端点。
+Roughly 4 MB per 1000 chunks. It lives outside the vault in the OS app-data directory by default, so Obsidian Sync and git never see it. The location is configurable.
 
 ---
 
-## 和同类方案的对比
+## Privacy and network
 
-| | **本插件** | **飞书知识问答** | **Copilot for Obsidian** | **Claudian** | **Claude Code / Codex** |
+**Everything stays on your machine.**
+
+The plugin only talks to the endpoint you configure. By default that's `http://localhost:11434` — Ollama on your own computer. Note content, PDF text, questions and answers never leave the machine.
+
+If you point the endpoint at a cloud provider, your note content goes to that provider. That's your choice; the plugin makes no hidden requests.
+
+**On local file access**: vault files are read through Obsidian's Vault API. The index is written outside the vault (OS app-data directory) on purpose — it's a machine-local build artifact, tens of megabytes, and putting it in the vault means Obsidian Sync and git carry it around. That part uses Node's `fs`, which is why the plugin is marked `isDesktopOnly`.
+
+**On streaming**: answers stream back over Node's `http` (Obsidian's `requestUrl` doesn't support streaming, and `fetch` in the renderer is subject to CORS). Requests go only to your configured endpoint.
+
+---
+
+## How it compares
+
+| | **This plugin** | **Feishu/Lark Knowledge QA** | **Copilot for Obsidian** | **Claudian** | **Claude Code / Codex** |
 |---|---|---|---|---|---|
-| 形态 | Obsidian 插件 | 云服务 | Obsidian 插件 | Obsidian 插件 | 终端 CLI |
-| **唤起方式** | ✅ 居中搜索框 | ✅ 居中搜索框 | ❌ 只有侧栏 | ❌ 只有侧栏 | 终端 |
-| **数据私有化** | ✅ 全本机 | ❌ 上云 | ⚠️ 取决于配置 | ❌ 上云 | ❌ 上云 |
-| **模型灵活度** | ✅ 任意 OpenAI 兼容端点 | ❌ 固定 | ✅ 多家 + 本地 | ⚠️ 限编程 agent | ⚠️ 各自绑定 |
-| **可训练性** | ✅ 换成自己微调的模型即可 | ❌ | ✅ 同左 | ❌ | ❌ |
-| **文件实时修改** | ⚠️ 改写需确认 | ❌ 只读 | ⚠️ 部分 | ✅ 全自动 agent | ✅ 全自动 agent |
-| **检索方式** | 语义 + 关键词混合 | 语义（云端） | 语义 + 关键词混合 | 无向量索引，靠 grep/读文件 | 同左 |
-| **引用溯源** | ✅ 点击跳到行/页 | ✅ | ✅ | ⚠️ 靠模型自述 | ⚠️ 靠模型自述 |
-| **离线可用** | ✅ | ❌ | ⚠️ 配本地模型才行 | ❌ | ❌ |
-| **持续成本** | 0 | 订阅 | 0 或 API 费 | API 费 | API 费 |
+| Form factor | Obsidian plugin | Cloud service | Obsidian plugin | Obsidian plugin | Terminal CLI |
+| **How you invoke it** | ✅ Centered search box | ✅ Centered search box | ❌ Sidebar only | ❌ Sidebar only | Terminal |
+| **Data stays local** | ✅ Fully local | ❌ Cloud | ⚠️ Depends on config | ❌ Cloud | ❌ Cloud |
+| **Model choice** | ✅ Any OpenAI-compatible endpoint | ❌ Fixed | ✅ Many providers + local | ⚠️ Coding agents only | ⚠️ Vendor-locked |
+| **Use your own fine-tune** | ✅ | ❌ | ✅ | ❌ | ❌ |
+| **Live file editing** | ⚠️ Rewrites need confirmation | ❌ Read-only | ⚠️ Partial | ✅ Fully agentic | ✅ Fully agentic |
+| **Retrieval** | Semantic + keyword | Semantic (cloud) | Semantic + keyword | No index — greps and reads files | Same |
+| **Citations** | ✅ Click to jump to line/page | ✅ | ✅ | ⚠️ Model's own claim | ⚠️ Model's own claim |
+| **Works offline** | ✅ | ❌ | ⚠️ Only with a local model | ❌ | ❌ |
+| **Ongoing cost** | 0 | Subscription | 0 or API fees | API fees | API fees |
 
-### 逐个维度说明
+### Dimension by dimension
 
-**唤起方式**
+**How you invoke it**
 
-这是本插件最初被做出来的原因。
+This is the reason the plugin exists.
 
-飞书知识问答的入口是一个**醒目的搜索框**——想问就问，不用先想清楚该读哪个文件。
-本插件把这个体验搬进了 Obsidian：一个快捷键，弹出居中搜索框，输入问题就完了，
-和按 `Cmd+O` 打开 Quick Switcher 是同一种手感。
+Feishu's knowledge QA puts a **prominent search box** front and centre — you ask without first working out which document to read. This plugin brings that into Obsidian: one shortcut, a centered box, type the question. Same muscle memory as `Cmd+O` for the Quick Switcher.
 
-Obsidian 的 AI 插件基本都是**侧栏形态**：点开右侧面板、在里面聊天，
-往往还要手动指定「读哪几个文件」。查过代码确认：Copilot（3.3.3）和 Claudian（2.0.41）
-都只注册了侧栏视图，没有任何居中弹窗类的入口。
+Obsidian AI plugins are overwhelmingly **sidebar-shaped**: open the right panel, chat in it, often after telling it which files to read. Verified in code: Copilot (3.3.3) and Claudian (2.0.41) register only sidebar views — no modal entry point at all.
 
-侧栏适合长对话，但不适合「随手问一句」——你得先腾出屏幕空间，才能开始想问题。
-本插件三种形态都有（弹窗 / 右侧 / 中间），但**默认且主推的是弹窗**。
+Sidebars are good for long conversations and bad for asking one quick thing: you have to make room on screen before you can start thinking. This plugin offers all three shapes, but **the modal is the default and the point**.
 
-**数据私有化**
+**Data stays local**
 
-本插件默认只往 `localhost` 发请求，笔记内容、PDF 文字、提问和回答都不出本机。飞书、Claudian、Claude Code / Codex 都必须把内容发给云端模型才能工作——这不是缺陷，是形态决定的。
+This plugin talks only to `localhost` by default. Feishu, Claudian and Claude Code / Codex must send content to a cloud model to work at all — not a flaw, just what they are.
 
-Copilot for Obsidian 打了 ⚠️ 是因为它**两种都支持**：配 OpenAI/Anthropic 就是上云，配本地 Ollama 就是全本机。选择权在你。
+Copilot for Obsidian gets a ⚠️ because it supports **both**: point it at OpenAI/Anthropic and it's cloud; point it at local Ollama and it's fully local. Your call.
 
-**模型灵活度**
+**Model choice**
 
-本插件对接的是「任意 OpenAI 兼容端点」，所以本地 Ollama、`mlx_lm.server`、自建推理服务、云端 API 都能接。Copilot 同样开放。
+This plugin targets "any OpenAI-compatible endpoint", so local Ollama, `mlx_lm.server`, a self-hosted inference server or a cloud API all work. Copilot is similarly open.
 
-飞书用的是自家模型，用户没有选择。Claude Code 和 Codex 各自绑定 Anthropic 和 OpenAI；Claudian 是这两者的壳，所以继承同样的限制。
+Feishu uses its own model with no user choice. Claude Code and Codex are tied to Anthropic and OpenAI respectively; Claudian wraps those two and inherits the same constraint.
 
-**可训练性**
+**Use your own fine-tune**
 
-严格说，这几个产品**都不能在产品内训练模型**。但区别在于：**能不能把你自己训好的模型接进来。**
+Strictly speaking, none of these train models for you. The real difference is whether you can **bring a model you trained**.
 
-本插件和 Copilot 可以——你用 LoRA 微调一个 4B 模型、跑起来暴露成 OpenAI 兼容端点，填进设置就能用。云端产品做不到这件事。
+This plugin and Copilot can — LoRA-tune a 4B model, serve it behind an OpenAI-compatible endpoint, put the URL in settings. Cloud products can't do this at all.
 
-**文件实时修改**
+**Live file editing**
 
-差异最大的一项，也最需要想清楚你要什么。
+The biggest difference, and the one worth thinking through.
 
-- **Claude Code / Codex / Claudian** 是 agent：自己决定读哪个文件、改哪一行、直接落盘。能力最强，代价是你得盯着它，改错了要靠 git 回滚。
-- **本插件**刻意做成半自动：只改**你选中的那段**，生成后显示行级 diff，**不确认不写盘**。改动范围可控，出错代价就是点一下取消。
-- **飞书知识问答**是纯只读的问答。
+- **Claude Code / Codex / Claudian** are agents: they decide which file to open, which lines to change, and write to disk. Most capable, but you have to watch them, and mistakes mean reaching for git.
+- **This plugin** is deliberately semi-automatic: it only edits **the text you selected**, shows a line-level diff, and **writes nothing until you confirm**. The blast radius is bounded; the cost of a bad suggestion is clicking Cancel.
+- **Feishu's knowledge QA** is read-only.
 
-这是个取舍，不是优劣：想让 AI 帮你重构一整个目录的笔记，本插件做不到；想安全地润色一段话，agent 那套反而过重。
+This is a trade-off, not a ranking. Want AI to restructure a whole folder of notes? This plugin can't. Want to safely tighten one paragraph? The agent approach is overkill.
 
-**检索方式**
+**Retrieval**
 
-本插件、飞书、Copilot 都建向量索引。本插件和 Copilot 还都做了**混合检索**——
-在语义检索之外并行跑一路关键词检索再融合。
+This plugin, Feishu and Copilot all build vector indexes. This plugin and Copilot both also do **hybrid retrieval** — a keyword pass running alongside the semantic one, then fused.
 
-这一路是必要的：语义检索对罕见专有名词（缩写、型号、人名）是盲区，
-问「什么是 XXX」时可能直接回答「库里没有」，而实际上有好几段。
-这类**错误的否定回答**比答得不好危险，因为用户无从察觉。
+That second pass matters: semantic search has a blind spot for rare proper nouns (acronyms, model numbers, surnames). Ask "what is XYZ" and you may be told there's nothing in your vault when there are several passages. **A wrong negative is more dangerous than a mediocre answer**, because there's nothing to tip the user off.
 
-Claude Code / Codex / Claudian **不建索引**，靠 agent 自己 grep 和读文件。好处是不需要预处理、永远是最新的；坏处是「我记过哪些关于专注的方法」这类概念性问题很难命中——笔记里写的可能是「先做五分钟」，字面上没有「专注」两个字。
+Claude Code / Codex / Claudian build **no index** — the agent greps and reads files itself. Upside: no preprocessing, always current. Downside: conceptual questions are hard to hit, because your note might say "work in five-minute blocks" without ever using the word "focus".
 
-**引用溯源**
+**Citations**
 
-本插件的参考资料由程序按实际用到的材料生成，不是让模型自己写——实测让模型写来源三次里漏两次，还会编造。点击可以直接跳到笔记的对应行或 PDF 的对应页。
+References here are generated by the program from the passages actually used, not written by the model — in testing, models omitted sources two times in three and sometimes invented them. Clicking a reference jumps to the exact line in a note or page in a PDF.
 
-agent 类工具的出处是模型在回答里自述的，准确性取决于模型。
+Agent-style tools state their sources inside the answer text, so accuracy depends on the model.
 
-### 该选哪个
+### Which should you use
 
-| 你的情况 | 建议 |
+| If you… | Then |
 |---|---|
-| 资料敏感，不能上云 | **本插件**或 Copilot 配本地模型 |
-| 想让 AI 大规模重构笔记 | Claudian / Claude Code |
-| 团队协作，不想折腾配置 | 飞书这类云服务 |
-| 想要功能最全的 Obsidian AI 插件 | Copilot（本插件功能面窄，专注问答+引用） |
-| 有自己微调的模型想用上 | **本插件**或 Copilot |
-| 就想按个快捷键快速问一句 | **本插件** |
+| Handle sensitive material that can't go to the cloud | **This plugin**, or Copilot with a local model |
+| Want AI to restructure notes at scale | Claudian / Claude Code |
+| Work in a team and don't want to configure anything | A cloud service like Feishu |
+| Want the most feature-complete Obsidian AI plugin | Copilot — this plugin is narrower on purpose (QA + citations) |
+| Have your own fine-tuned model to use | **This plugin**, or Copilot |
+| Just want to hit a key and ask one question | **This plugin** |
 
-> 说明：飞书知识问答的具体行为可能随版本和部署方式变化，上表基于其公开形态；
-> Copilot 和 Claudian 的信息来自本文撰写时的版本（Copilot 3.3.3 / Claudian 2.0.41）。
-> 各家都在快速迭代，以实际使用为准。
+> Notes: Feishu's behaviour varies by version and deployment; the table reflects its public form.
+> Copilot and Claudian details come from the versions current at the time of writing
+> (Copilot 3.3.3 / Claudian 2.0.41). Everyone iterates fast — verify against what you actually have.
 
 ---
 
-## 许可
+## License
 
 MIT
