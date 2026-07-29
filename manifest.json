@@ -1,0 +1,10 @@
+{
+  "id": "knowledge-ai",
+  "name": "Knowledge AI",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Ask questions about your vault in natural language. Semantic search over notes and PDFs, answers with clickable citations, running entirely on your own machine.",
+  "author": "theozhang",
+  "isDesktopOnly": true,
+  "authorUrl": "https://github.com/iamtheozzz"
+}

@@ -1,0 +1,603 @@
+/* 全部使用 Obsidian 的 CSS 变量，不写死任何颜色，
+   这样自动适配用户的主题与明暗模式（审核也会看这一点）。 */
+
+/* 弹窗不自己定尺寸——AskModal 会去掉 .modal 换上 .prompt，
+   直接继承 Obsidian 原生 Quick Switcher / 命令面板那套：
+   700px 宽、80vw 上限、70vh 高、顶部 80px 起（不是垂直居中）。
+   Omnisearch 用的就是这个办法。好处是用户换主题、改 --prompt-* 变量时
+   我们跟着一起变，不需要自己追。 */
+.kai-modal.prompt {
+  padding: 0;
+}
+
+/* .prompt 是 flex 列，modal-content 得能收缩，否则 70vh 上限会被内容顶穿 */
+.kai-modal.prompt .modal-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── 输入 ────────────────────────────────────────── */
+/* 分隔线用 --background-secondary，和原生 .prompt-input 完全同一条。
+   注意不要用 --background-modifier-border，那个明显深一档。 */
+.kai-input-wrap {
+  flex: 0 0 auto;
+  padding: 0;
+  border-bottom: var(--border-width) solid var(--background-secondary);
+}
+
+/* Obsidian 给所有 textarea 加了整套表单外观：填充背景、边框、圆角，
+   focus 时还有一圈 box-shadow。我们要的是「看不出是输入框的输入框」，
+   所以全部抹掉——之前只覆盖了 border 和 background，漏掉 border-radius
+   和 box-shadow，结果输入区被画成一个圆角盒子，它的下边缘看着就像一条灰线。
+   选择器写长是为了压过元素级默认样式和主题的 hover/focus 规则。 */
+.kai-input-wrap textarea.kai-input,
+.kai-input-wrap textarea.kai-input:hover,
+.kai-input-wrap textarea.kai-input:focus,
+.kai-input-wrap textarea.kai-input:focus-visible,
+.kai-input-wrap textarea.kai-input:active {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  outline: none;
+}
+
+.kai-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  line-height: 1.5;
+  font-family: inherit;
+  /* 高度对齐 --prompt-input-height（Baseline 是 64px，原生默认 40px）。
+     原生用的是 <input>，写死 height 文字自动垂直居中；textarea 做不到，
+     只能用上下 padding 把单行撑成同样的高度，多行时再自然长高。 */
+  padding: calc((var(--prompt-input-height, 40px) - 1.5em) / 2) var(--size-4-6);
+}
+
+.kai-input::placeholder {
+  color: var(--text-faint);
+}
+
+/* ── 状态行 ──────────────────────────────────────── */
+.kai-status {
+  padding: var(--size-4-2) var(--size-4-6);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+/* ── 正文 ────────────────────────────────────────── */
+/* 高度交给 .prompt 的 70vh 管，这里只负责吃掉剩余空间并滚动。
+   左右和输入框对齐（同为 --size-4-6），文字才不会看着错位。 */
+.kai-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--size-4-3) var(--size-4-6);
+  overflow-y: auto;
+}
+
+/* 提问当作这一轮的标题：比答案正文更大更粗，滚动时一眼能定位到
+   「我问的是哪一句」。弹窗和面板共用这条。 */
+.kai-question {
+  color: var(--text-normal);
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-bold);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.kai-answer {
+  color: var(--text-normal);
+  line-height: 1.6;
+}
+
+/* ── 空状态 ──────────────────────────────────────── */
+.kai-stats {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  margin-bottom: 12px;
+}
+
+.kai-examples-title {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-bottom: 6px;
+}
+
+.kai-example {
+  font-size: var(--font-ui-medium);
+  padding: 6px 8px;
+  margin: 2px -8px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.kai-example:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ── 引用 ────────────────────────────────────────── */
+.kai-refs {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.kai-ref {
+  display: block;
+  padding: 4px 0;
+  color: var(--text-accent);
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+}
+
+.kai-ref:hover {
+  text-decoration: underline;
+}
+
+/* ── 操作区 ──────────────────────────────────────── */
+.kai-actions {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+
+/* ── 设置页的测试结果 ─────────────────────────────── */
+.kai-test-result {
+  font-size: var(--font-ui-smaller);
+  margin: -8px 0 12px 0;
+  min-height: 1em;
+}
+
+.kai-test-ok { color: var(--text-success); }
+.kai-test-err { color: var(--text-error); }
+
+/* ── M3：对话流 ─────────────────────────────────────── */
+.kai-turn {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.kai-turn:last-child { border-bottom: none; margin-bottom: 0; }
+
+.kai-found {
+  margin: 6px 0 10px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.kai-found-row { padding: 1px 0; }
+.kai-score {
+  display: inline-block;
+  min-width: 3em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* 答案出来后把召回列表收起来，别一直占地方 */
+.kai-found-collapsed {
+  max-height: 1.6em;
+  overflow: hidden;
+  opacity: 0.55;
+}
+.kai-found-collapsed:hover { max-height: none; opacity: 1; }
+
+.kai-answer > :first-child { margin-top: 0; }
+.kai-answer > :last-child { margin-bottom: 0; }
+.kai-error { color: var(--text-error); }
+
+.kai-refs-title {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.kai-ref-idx {
+  display: inline-block;
+  min-width: 1.6em;
+  color: var(--text-faint);
+}
+
+.kai-actions { display: flex; gap: 6px; }
+.kai-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: var(--font-ui-smaller);
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+.kai-action:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* 底部留白：不然最后一条参考资料会被输入框挡住 */
+.kai-modal .kai-body { padding-bottom: var(--size-4-6); }
+
+.kai-summary {
+  border-bottom: none;
+  padding-left: 0;
+  cursor: default;
+}
+
+/* 设置页里的风险提示 */
+.kai-warn {
+  color: var(--text-warning);
+  margin-top: 2px;
+}
+
+/* ── 附带的图片 ─────────────────────────────────────── */
+.kai-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--size-4-6) var(--size-4-3); }
+/* 没有附图时不占高度，否则输入框下面会多出一条空白 */
+.kai-chips:empty { padding: 0; }
+.kai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px 2px 2px;
+  background: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.kai-chip-thumb { width: 24px; height: 24px; object-fit: cover; border-radius: 3px; }
+.kai-chip-x { cursor: pointer; padding: 0 3px; color: var(--text-faint); }
+.kai-chip-x:hover { color: var(--text-error); }
+.kai-question-imgs { color: var(--text-faint); font-size: var(--font-ui-smaller); margin-bottom: 6px; }
+
+/* 当前笔记里的图 */
+.kai-note-imgs { margin-bottom: 12px; }
+.kai-thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.kai-thumb {
+  width: 52px; height: 52px; object-fit: cover;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+}
+.kai-thumb:hover { border-color: var(--interactive-accent); }
+
+/* ── 改写弹窗 ───────────────────────────────────────── */
+.kai-rw-title { padding: 14px 16px 6px; color: var(--text-muted); font-size: var(--font-ui-small); }
+.kai-rw-src { margin: 0 16px 10px; color: var(--text-muted); font-size: var(--font-ui-smaller); }
+.kai-rw-pre { white-space: pre-wrap; max-height: 160px; overflow-y: auto; margin-top: 6px; }
+.kai-rw-input { padding: 0 16px 10px; }
+.kai-rw-out { padding: 0 16px; max-height: 46vh; overflow-y: auto; font-size: var(--font-ui-small); }
+
+.kai-presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+.kai-preset {
+  padding: 3px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+.kai-preset:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+
+.kai-diff { white-space: pre-wrap; font-family: var(--font-monospace); line-height: 1.5; }
+.kai-diff-add { background: rgba(80, 200, 120, 0.13); color: var(--text-normal); }
+.kai-diff-del { background: rgba(230, 90, 90, 0.13); color: var(--text-muted); text-decoration: line-through; }
+.kai-diff-same { color: var(--text-faint); }
+
+/* ── 右侧面板 ────────────────────────────────────── */
+/* 和弹窗共用全部内部样式，这里只改外层布局：
+   弹窗是内容撑高、整体居中；面板是撑满高度、正文吃掉剩余空间、
+   输入框钉在底部。 */
+.kai-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.kai-pane .kai-body {
+  flex: 1 1 auto;
+  max-height: none;
+  padding-bottom: 12px;
+}
+
+/* 输入框在底部，分隔线要翻到上面 */
+.kai-pane .kai-input-wrap {
+  flex: 0 0 auto;
+  border-bottom: none;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 面板窄，大号字会频繁折行 */
+.kai-pane .kai-input {
+  font-size: var(--font-ui-medium);
+}
+
+/* 中间面板宽得多，正文限宽居中——一行拉满 1200px 没法读。
+   跟随 Obsidian 的「可读行宽」变量，和用户笔记的排版保持一致。 */
+.kai-pane-center .kai-body > *,
+.kai-pane-center .kai-input-wrap > * {
+  max-width: var(--file-line-width, 700px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.kai-pane-center .kai-input {
+  font-size: var(--font-ui-large);
+}
+
+/* ── 新标签页主页 ────────────────────────────────── */
+/* 搜索引擎首页那套：大留白、搜索框略高于视觉中心（放正中会显得偏低）。 */
+.kai-home {
+  outline: none;          /* tabindex 带来的焦点框，视觉上是噪音 */
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.kai-home-inner {
+  width: min(640px, 88%);
+  margin-top: 16vh;
+  padding-bottom: 48px;
+  text-align: center;
+}
+
+.kai-home-title {
+  font-size: 2.6em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-normal);
+  margin-bottom: 24px;
+}
+
+/* 长得像输入框，其实是个按钮——点了唤起弹窗 */
+.kai-home-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 24px;
+  background: var(--background-primary);
+  cursor: text;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.kai-home-search:hover {
+  border-color: var(--background-modifier-border-hover);
+  box-shadow: 0 1px 6px var(--background-modifier-box-shadow);
+}
+
+.kai-home-search-icon {
+  display: flex;
+  color: var(--text-faint);
+}
+
+.kai-home-search-ph {
+  color: var(--text-faint);
+  font-size: var(--font-ui-medium);
+}
+
+.kai-home-stats {
+  margin-top: 12px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+.kai-home-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.kai-home-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.kai-home-chip:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.kai-home-recent {
+  margin-top: 40px;
+  text-align: left;
+}
+
+.kai-home-section {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.kai-home-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+.kai-home-file:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.kai-home-file-icon {
+  display: flex;
+  color: var(--text-faint);
+}
+
+/* 简洁模式：只留标题和搜索框。
+   内容少了要往下挪一点——原来的 16vh 是按下面还有三块内容配的，
+   在空页面上会顶得太靠上。 */
+.kai-home-minimal .kai-home-stats,
+.kai-home-minimal .kai-home-chips,
+.kai-home-minimal .kai-home-recent {
+  display: none;
+}
+
+.kai-home-minimal .kai-home-inner {
+  margin-top: 28vh;
+}
+
+/* 底部按键提示条固定在最下面，不跟着正文滚 */
+.kai-modal .prompt-instructions {
+  flex: 0 0 auto;
+}
+
+/* ── 思考指示 ────────────────────────────────────── */
+/* 一个呼吸的圆点，从请求发出转到第一个字出现为止。
+   本地模型首字要等 15–30 秒，这段时间必须有东西在动，
+   否则和「卡死了」没有区别。弹窗、面板、改写弹窗共用这一个。 */
+.kai-thinking {
+  width: 9px;
+  height: 9px;
+  margin: 4px 0;
+  border-radius: 50%;
+  background: var(--text-normal);
+  animation: kai-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes kai-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 0.9; transform: scale(1); }
+}
+
+/* 系统开了「减少动态效果」就不要动，静止显示即可 */
+@media (prefers-reduced-motion: reduce) {
+  .kai-thinking { animation: none; opacity: 0.5; }
+}
+
+/* ── 检索范围：手选文件 ──────────────────────────── */
+/* 胶囊排在输入框上方，加号常驻在最后一个。参考 Claudian 的做法：
+   把「在哪儿找」和「找什么」放在同一个框里，不用另开设置。 */
+.kai-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--size-4-6) var(--size-4-2);
+}
+
+.kai-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  background: var(--background-primary);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-normal);
+}
+
+.kai-file-chip > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kai-file-icon { display: flex; color: var(--text-faint); }
+
+.kai-file-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.kai-file-add:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* 面板的输入框贴着底边太局促，抬起来一点 */
+.kai-pane .kai-input-wrap {
+  padding-top: var(--size-4-3);
+  margin-bottom: var(--size-4-4);
+}
+
+/* 面板空状态：和新标签页主页同一套。面板比弹窗高得多，
+   沿用弹窗那种左上角贴一行统计的排版会空出一大片，像没加载出来。 */
+.kai-empty-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  text-align: center;
+  gap: 4px;
+}
+
+/* 侧栏窄，主页那个 2.6em 会顶到两边 */
+.kai-pane .kai-empty-home .kai-home-title {
+  font-size: 1.9em;
+  margin-bottom: 8px;
+}
+
+.kai-pane-center .kai-empty-home .kai-home-title {
+  font-size: 2.6em;
+}
+
+.kai-empty-home .kai-home-chips { margin-top: 20px; }
+.kai-empty-home .kai-note-imgs { margin-top: 16px; }
+
+/* 参考资料：一行一个文件，后面跟着若干可点的页码 */
+.kai-ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  cursor: default;
+}
+.kai-ref:hover { text-decoration: none; }
+
+.kai-ref-title { color: var(--text-muted); }
+
+.kai-ref-page {
+  color: var(--text-accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kai-ref-page:hover { text-decoration: underline; }
+
+/* markdown 没有页码，整行可点 */
+.kai-ref-plain { cursor: pointer; }
+.kai-ref-plain .kai-ref-title { color: var(--text-accent); }
+.kai-ref-plain:hover .kai-ref-title { text-decoration: underline; }
+
+/* 清空对话：和 ＋ 同一排，靠右 */
+.kai-input-wrap { position: relative; }
+.kai-reset {
+  position: absolute;
+  right: var(--size-4-6);
+  top: var(--size-4-1);
+}
