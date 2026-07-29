@@ -332,7 +332,7 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         .setName(t("index.rebuildFull"))
         .setDesc(t("index.rebuildDesc"))
         .addButton((b) =>
-          b.setButtonText(t("index.rebuildFull")).setWarning().onClick(async () => {
+          b.setButtonText(t("index.rebuildFull")).setDestructive().onClick(async () => {
             b.setDisabled(true);
             await this.plugin.rebuildIndex();
             b.setDisabled(false);
@@ -348,7 +348,6 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
       s
         .setLimits(3, 20, 1)
         .setValue(this.plugin.settings.topK)
-        .setDynamicTooltip()
         .onChange(async (v) => {
           this.plugin.settings.topK = v;
           await this.plugin.saveSettings();
@@ -359,7 +358,6 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
       s
         .setLimits(0.3, 0.8, 0.05)
         .setValue(this.plugin.settings.threshold)
-        .setDynamicTooltip()
         .onChange(async (v) => {
           this.plugin.settings.threshold = v;
           await this.plugin.saveSettings();

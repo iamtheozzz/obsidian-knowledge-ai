@@ -1,4 +1,3 @@
-import { requestUrl } from "obsidian";
 import { Embedder } from "../embedder";
 import { resolveAnswerLang, type Locale } from "../i18n";
 import type { IndexStore, Hit } from "../index/store";

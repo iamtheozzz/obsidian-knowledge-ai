@@ -31,7 +31,7 @@ export async function testChat(s: KnowledgeAiSettings): Promise<TestResult> {
       }),
       throw: false,
     });
-  } catch (e) {
+  } catch {
     return { ok: false, text: t("error.refused", { url: s.endpoint }) };
   }
 
@@ -193,7 +193,7 @@ export async function testVision(s: KnowledgeAiSettings): Promise<TestResult> {
   if (!model) return { ok: false, text: t("error.modelNotFound", { model: "-" }) };
 
   // 现画一张图：一个红色圆 + 文字 VX7，不依赖任何打包资源
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = 220;
   canvas.height = 120;
   const ctx = canvas.getContext("2d");

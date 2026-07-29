@@ -124,7 +124,7 @@ async function toDataUrl(vault: Vault, file: TFile): Promise<string> {
   const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
   if (scale >= 1) return raw;
 
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = Math.round(img.width * scale);
   canvas.height = Math.round(img.height * scale);
   const ctx = canvas.getContext("2d");

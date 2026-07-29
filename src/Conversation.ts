@@ -1,4 +1,4 @@
-import { App, MarkdownRenderer, MarkdownView, Notice, TFile, setIcon } from "obsidian";
+import { App, Component, MarkdownRenderer, MarkdownView, Notice, TFile, setIcon } from "obsidian";
 import { LocalBackend } from "./backend/local";
 import type { AskEvent, Source, Turn } from "./backend/types";
 import { t } from "./i18n";
@@ -55,6 +55,8 @@ export class Conversation {
   private controller: AbortController | null = null;
 
   private noteImages: TFile[] = [];
+  /** markdown 渲染用的宿主组件。生命周期跟着这次会话，不是跟着插件。 */
+  private readonly component = new Component();
   /** 空状态是否用主页那套居中大标题的样子。面板用，弹窗不用。 */
   private homeStyle = false;
   /** 用户手选的检索范围。空表示全库。 */
@@ -63,6 +65,8 @@ export class Conversation {
   private resetEl?: HTMLElement;
 
   constructor(app: App, plugin: KnowledgeAiPlugin, host: ConvHost) {
+    // 必须 load，否则 MarkdownRenderer 挂上来的子组件不会被激活
+    this.component.load();
     this.app = app;
     this.plugin = plugin;
     this.host = host;
@@ -136,6 +140,7 @@ export class Conversation {
   destroy() {
     this.controller?.abort();
     this.controller = null;
+    this.component.unload();
   }
 
   /**
@@ -219,8 +224,12 @@ export class Conversation {
   // ── 交互 ──────────────────────────────────────────────
 
   private autoGrow() {
-    this.inputEl.style.height = "auto";
-    this.inputEl.style.height = `${Math.min(this.inputEl.scrollHeight, 160)}px`;
+    // 高度必须运行时算（要读 scrollHeight），但不能直接写 .style——
+    // 官方 lint 规则 no-static-styles-assignment 会报错，要走 setCssStyles。
+    this.inputEl.setCssStyles({ height: "auto" });
+    this.inputEl.setCssStyles({
+      height: `${Math.min(this.inputEl.scrollHeight, 160)}px`,
+    });
   }
 
   private onKey(e: KeyboardEvent) {
@@ -581,7 +590,10 @@ export class Conversation {
     turn: HTMLElement
   ) {
     answerEl.empty();
-    void MarkdownRenderer.render(this.app, answer, answerEl, "", this.plugin);
+    // 不要把 plugin 实例当 Component 传进去：它活到插件卸载为止，
+    // 每渲染一次答案就往上挂一批子组件，永远不释放。用会话自己的
+    // Component，destroy() 时一起卸掉。
+    void MarkdownRenderer.render(this.app, answer, answerEl, "", this.component);
 
     if (sources.length) {
       const refs = turn.createDiv({ cls: "kai-refs" });
@@ -722,7 +734,7 @@ async function downscale(dataUrl: string, maxSide = 1024): Promise<string> {
   const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
   if (scale >= 1) return dataUrl;
 
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = Math.round(img.width * scale);
   canvas.height = Math.round(img.height * scale);
   const ctx = canvas.getContext("2d");
