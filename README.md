@@ -165,12 +165,12 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 1. Install the community plugin **BRAT** (Beta Reviewers Auto-update Tool)
 2. Open BRAT settings → `Add Beta Plugin`
-3. Enter `iamtheozzz/obsidian-knowledge-ai`
+3. Enter `iamtheozzz/lark-knowledge-ai`
 4. Done — you'll be prompted when new versions ship
 
 **Method 2: Manual**
 
-1. Download the three files from the latest [release](https://github.com/iamtheozzz/obsidian-knowledge-ai/releases):
+1. Download the three files from the latest [release](https://github.com/iamtheozzz/lark-knowledge-ai/releases):
    `main.js`, `manifest.json`, `styles.css`
 2. Create the folder `<your vault>/.obsidian/plugins/knowledge-ai/`
 3. Put the three files there
@@ -203,7 +203,7 @@ VAULT="$HOME/Documents/MyVault"
 DIR="$VAULT/.obsidian/plugins/knowledge-ai"
 mkdir -p "$DIR"
 # Download main.js / manifest.json / styles.css into $DIR from
-# https://github.com/iamtheozzz/obsidian-knowledge-ai/releases/latest
+# https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest
 
 # 4. Minimal config (everything else uses defaults)
 cat > "$DIR/data.json" <<'JSON'

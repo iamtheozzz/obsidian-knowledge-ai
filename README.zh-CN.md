@@ -167,12 +167,12 @@ ollama pull gemma4:e4b
 
 1. 在 Obsidian 里安装社区插件 **BRAT**（Beta Reviewers Auto-update Tool）
 2. 打开 BRAT 设置 → `Add Beta Plugin`
-3. 填入 `iamtheozzz/obsidian-knowledge-ai`
+3. 填入 `iamtheozzz/lark-knowledge-ai`
 4. 完成，之后有新版本会自动提示更新
 
 **方式二：手动安装**
 
-1. 到 [Releases](https://github.com/iamtheozzz/obsidian-knowledge-ai/releases) 页下载最新版的三个文件：
+1. 到 [Releases](https://github.com/iamtheozzz/lark-knowledge-ai/releases) 页下载最新版的三个文件：
    `main.js`、`manifest.json`、`styles.css`
 2. 在你的库里新建目录：`<你的库>/.obsidian/plugins/knowledge-ai/`
 3. 把三个文件放进去
@@ -205,7 +205,7 @@ ollama pull qwen3.5:9b-mlx           # 内存 ≥ 16 GB
 VAULT="$HOME/Documents/MyVault"
 DIR="$VAULT/.obsidian/plugins/knowledge-ai"
 mkdir -p "$DIR"
-# 从 https://github.com/iamtheozzz/obsidian-knowledge-ai/releases/latest
+# 从 https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest
 # 下载 main.js / manifest.json / styles.css 到 $DIR
 
 # 4. 最小配置（其余全部走默认值）
