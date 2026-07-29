@@ -4,6 +4,9 @@ import type zh from "./zh";
 // at compile time, so a missing key is a build error rather than a blank label.
 const en: Record<keyof typeof zh, string> = {
   "plugin.name": "Lark Knowledge AI",
+  // 主页/面板空状态的大标题。商店里的名字要唯一所以加了 Lark 前缀，
+  // 但页面上那行大字不需要——用户已经在自己的库里了，写全称只是噪音。
+  "brand": "Knowledge AI",
   "cmd.ask": "Ask",
   "cmd.askSelection": "Ask about selection",
   "cmd.rewrite": "Rewrite selection",

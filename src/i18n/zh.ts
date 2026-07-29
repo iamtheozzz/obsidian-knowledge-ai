@@ -2,6 +2,9 @@
 export default {
   // —— 通用 ——
   "plugin.name": "Lark Knowledge AI",
+  // 主页/面板空状态的大标题。商店里的名字要唯一所以加了 Lark 前缀，
+  // 但页面上那行大字不需要——用户已经在自己的库里了，写全称只是噪音。
+  "brand": "Knowledge AI",
   "cmd.ask": "提问",
   "cmd.askSelection": "就选中内容提问",
   "cmd.rewrite": "改写选中内容",

@@ -44,7 +44,7 @@ export class HomeView extends ItemView {
     root.addClass("kai-home");
 
     const inner = root.createDiv({ cls: "kai-home-inner" });
-    inner.createDiv({ cls: "kai-home-title", text: t("plugin.name") });
+    inner.createDiv({ cls: "kai-home-title", text: t("brand") });
 
     // ── 搜索框（点击 → 弹窗）─────────────────────────
     const box = inner.createDiv({ cls: "kai-home-search" });

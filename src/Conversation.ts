@@ -365,7 +365,7 @@ export class Conversation {
    */
   private renderEmptyHome() {
     const box = this.scrollEl.createDiv({ cls: "kai-empty-home" });
-    box.createDiv({ cls: "kai-home-title", text: t("plugin.name") });
+    box.createDiv({ cls: "kai-home-title", text: t("brand") });
     box.createDiv({ cls: "kai-home-stats", text: this.plugin.indexSummary() });
 
     if (this.noteImages.length) {
