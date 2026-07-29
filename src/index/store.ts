@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { normalizePath } from "obsidian";
 
 export interface ChunkMeta {
   path: string;    // 库内相对路径
@@ -47,8 +48,11 @@ export class IndexStore {
   private model = "";
 
   constructor(vaultName: string, customDir: string) {
+    // 用户手填的路径先过 normalizePath：官方指南要求用它清理用户输入的路径，
+    // 它会统一分隔符、去掉多余的斜杠和首尾空白。~ 要在那之前展开——
+    // normalizePath 不认识它，留着会变成一个名叫 "~" 的目录。
     this.dir = customDir
-      ? path.resolve(customDir.replace(/^~/, os.homedir()))
+      ? path.resolve(normalizePath(customDir.trim().replace(/^~(?=$|[/\\])/, os.homedir())))
       : path.join(defaultRoot(), sanitize(vaultName));
   }
 

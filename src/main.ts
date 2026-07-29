@@ -30,11 +30,12 @@ export default class KnowledgeAiPlugin extends Plugin {
     this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
     this.registerEvent(this.app.workspace.on("layout-change", () => this.hijackNewTab()));
 
+    // 刻意不设默认快捷键。官方插件指南明确建议 avoid setting default hotkeys——
+    // 常用组合早被别的插件占了，撞键的排查成本比省下的一次设置高得多。
+    // 入口仍有三个：ribbon 图标、命令面板、用户自己绑的快捷键。
     this.addCommand({
       id: "ask",
       name: t("cmd.ask"),
-      // 注意 key 必须大写：Obsidian 的快捷键匹配区分大小写，"k" 不会触发
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "K" }],
       callback: () => this.openAsk(),
     });
 

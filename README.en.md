@@ -9,6 +9,40 @@ A local alternative to enterprise knowledge-QA products like Feishu/Lark — fre
 
 ---
 
+## Disclosures
+
+Per Obsidian's [developer policies](https://docs.obsidian.md/Developer+policies), two things need stating explicitly:
+
+**Network use — fully offline by default.**
+
+The plugin's only outbound destination is the endpoint you configure in settings.
+The default, `http://localhost:11434`, is a **loopback address** (`127.0.0.1`) —
+traffic stays inside the operating system and never touches a network interface.
+**Once installed, it works with networking switched off entirely**: indexing, asking
+and rewriting need no connection.
+
+Internet is only needed to install — downloading Obsidian, Ollama and the models. Once.
+
+No telemetry, no ads, no self-update mechanism. `localhost` is the only address in the source.
+
+The one exception: if you **deliberately** point the endpoint at a cloud provider
+(OpenAI, say), your note content goes to that provider. The plugin won't stop you,
+but that is your explicit choice.
+
+**File access outside the vault** — the vector index is written **outside** your
+Obsidian vault (by default the OS app-data directory, e.g.
+`~/Library/Application Support/knowledge-ai/` on macOS). The location is configurable.
+
+Why not inside the vault: the index is a machine-local build artifact that grows to
+tens or hundreds of megabytes. Putting it in `.obsidian/` means Obsidian Sync,
+obsidian-git and friends carry it around — wasted bandwidth for something that has to
+be recomputed on another machine anyway. That part uses Node's `fs`, which is why the
+plugin is marked `isDesktopOnly`.
+
+Everything else — reading and writing files inside your vault — goes through Obsidian's Vault API.
+
+---
+
 ## Screenshots
 
 **Home** — takes over new tabs. A centered search box; click it or just start typing.
@@ -27,6 +61,7 @@ A local alternative to enterprise knowledge-QA products like Feishu/Lark — fre
 
 ## Contents
 
+- [Disclosures](#disclosures)
 - [What it does](#what-it-does)
 - [Installation](#installation)
   - [1. Obsidian](#1-obsidian)
@@ -285,13 +320,19 @@ The **Rebuild** button wipes and re-runs everything. **PDF text extraction is ca
 
 | Action | Result |
 |---|---|
-| `Cmd/Ctrl + Shift + K` | Open the centered modal |
+| A hotkey you assign | Open the centered modal (**none is bound by default** — see below) |
 | Click the ribbon icon | Same |
 | Command palette → `Knowledge AI: Ask` | Same |
 
 Type and press Enter. Answers stream in, with references at the end.
 
 `Enter` to ask · `Shift + Enter` for a newline · `Esc` to stop generating (press again to close)
+
+> **No hotkey is bound by default.** The official plugin guidelines advise against shipping
+> default hotkeys — the common combinations are already taken and conflicts are annoying to
+> track down. Go to *Settings → Hotkeys*, search `Knowledge AI`, and bind *Ask* to whatever
+> suits you (`Cmd/Ctrl + Shift + K` is a good pick). You don't have to: the ribbon icon and
+> the command palette both work.
 
 ### Narrowing the search
 
