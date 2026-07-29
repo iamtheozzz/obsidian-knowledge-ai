@@ -9,6 +9,22 @@ A local alternative to enterprise knowledge-QA products like Feishu/Lark — fre
 
 ---
 
+## Screenshots
+
+**Home** — takes over new tabs. A centered search box; click it or just start typing.
+
+![Home](docs/home.png)
+
+**Ask** — a shortcut opens the centered modal. Answers stream in with clickable sources at the end.
+
+![Ask](docs/ask.jpeg)
+
+**Read and ask side by side** — the right pane stays open. Asking "summarise the page I'm on" reads only the PDF page you're currently viewing, and the citation links back to it.
+
+![Pane](docs/pane.jpeg)
+
+---
+
 ## Contents
 
 - [What it does](#what-it-does)
