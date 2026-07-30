@@ -81,7 +81,7 @@ Conversations move freely between all three, and can take over new tabs as a hom
 ## Installation
 
 > **In a hurry?** If you use Claude Code, Codex or a similar CLI agent, just hand it
-> this README and let it do the install — see [Method 3](#method-3-hand-this-readme-to-an-ai-agent).
+> this README and let it do the install — see [Method 4](#method-4-hand-this-readme-to-an-ai-agent).
 
 ### 1. Obsidian
 
@@ -161,14 +161,23 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 ### 4. Install the plugin
 
-**Method 1: BRAT (recommended — auto-updates)**
+**Method 1: From the community directory (recommended)**
+
+Open it directly in Obsidian:
+
+**[obsidian://show-plugin?id=lark-knowledge-ai](obsidian://show-plugin?id=lark-knowledge-ai)**
+
+Or find it yourself: *Settings → Community plugins → Browse* → search for **Lark Knowledge AI** → Install → Enable.
+
+Updates arrive through Obsidian like any other community plugin.
+
+**Method 2: BRAT (for testing pre-release builds)**
 
 1. Install the community plugin **BRAT** (Beta Reviewers Auto-update Tool)
 2. Open BRAT settings → `Add Beta Plugin`
 3. Enter `iamtheozzz/lark-knowledge-ai`
-4. Done — you'll be prompted when new versions ship
 
-**Method 2: Manual**
+**Method 3: Manual**
 
 1. Download the three files from the latest [release](https://github.com/iamtheozzz/lark-knowledge-ai/releases):
    `main.js`, `manifest.json`, `styles.css`
@@ -178,7 +187,7 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 > `.obsidian` is hidden. On macOS press `Cmd+Shift+.` in Finder to reveal hidden files.
 
-**Method 3: Hand this README to an AI agent**
+**Method 4: Hand this README to an AI agent**
 
 If you use Claude Code, Codex or similar, just say:
 
@@ -198,14 +207,14 @@ ollama pull qwen3.5:9b-mlx           # 16 GB RAM or more
 # ollama pull qwen3.5:4b-mlx         # under 16 GB
 #   Not on Apple Silicon? Drop the -mlx suffix.
 
-# 3. Plugin files (set VAULT to your vault path)
+# 3. Install the plugin — easiest is to open this in Obsidian:
+#    obsidian://show-plugin?id=lark-knowledge-ai
+#    (Or download the three release assets manually; see Method 3 above.)
+
+# 4. Optional: preset the chat model instead of picking it in settings
 VAULT="$HOME/Documents/MyVault"
 DIR="$VAULT/.obsidian/plugins/lark-knowledge-ai"
 mkdir -p "$DIR"
-# Download main.js / manifest.json / styles.css into $DIR from
-# https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest
-
-# 4. Minimal config (everything else uses defaults)
 cat > "$DIR/data.json" <<'JSON'
 { "chatModel": "qwen3.5:9b-mlx" }
 JSON

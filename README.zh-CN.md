@@ -80,7 +80,7 @@
 ## 安装
 
 > **赶时间？** 如果你在用 Claude Code、Codex 这类命令行 AI，
-> 可以直接把这份 README 丢给它，让它照着装——见下方[方式三](#方式三把这份-readme-丢给-ai-agent)。
+> 可以直接把这份 README 丢给它，让它照着装——见下方[方式四](#方式四把这份-readme-丢给-ai-agent)。
 
 ### 1. Obsidian
 
@@ -163,14 +163,23 @@ ollama pull gemma4:e4b
 
 ### 4. 安装插件
 
-**方式一：BRAT（推荐，能自动更新）**
+**方式一：从社区插件库安装（推荐）**
+
+直接在 Obsidian 里打开：
+
+**[obsidian://show-plugin?id=lark-knowledge-ai](obsidian://show-plugin?id=lark-knowledge-ai)**
+
+或者自己找：「设置 → 第三方插件 → 浏览」搜 **Lark Knowledge AI** → 安装 → 启用。
+
+之后的更新和其他社区插件一样，Obsidian 会自动提示。
+
+**方式二：BRAT（想用预发布版本时）**
 
 1. 在 Obsidian 里安装社区插件 **BRAT**（Beta Reviewers Auto-update Tool）
 2. 打开 BRAT 设置 → `Add Beta Plugin`
 3. 填入 `iamtheozzz/lark-knowledge-ai`
-4. 完成，之后有新版本会自动提示更新
 
-**方式二：手动安装**
+**方式三：手动安装**
 
 1. 到 [Releases](https://github.com/iamtheozzz/lark-knowledge-ai/releases) 页下载最新版的三个文件：
    `main.js`、`manifest.json`、`styles.css`
@@ -180,7 +189,7 @@ ollama pull gemma4:e4b
 
 > `.obsidian` 是隐藏目录。macOS 上在 Finder 里按 `Cmd+Shift+.` 显示隐藏文件。
 
-**方式三：把这份 README 丢给 AI agent**
+**方式四：把这份 README 丢给 AI agent**
 
 如果你在用 Claude Code、Codex 或类似的命令行 AI，可以直接对它说：
 
@@ -201,14 +210,14 @@ ollama pull qwen3.5:9b-mlx           # 内存 ≥ 16 GB
 # ollama pull qwen3.5:4b-mlx         # 内存 < 16 GB 用这个
 #   非 Apple Silicon 去掉 -mlx 后缀
 
-# 3. 插件文件（把 VAULT 换成你的库路径）
+# 3. 装插件 —— 最省事的办法是在 Obsidian 里打开这个链接：
+#    obsidian://show-plugin?id=lark-knowledge-ai
+#    （也可以手动下载三个 Release 附件，见上面的方式三）
+
+# 4. 可选：预先写好对话模型，省得进设置页选
 VAULT="$HOME/Documents/MyVault"
 DIR="$VAULT/.obsidian/plugins/lark-knowledge-ai"
 mkdir -p "$DIR"
-# 从 https://github.com/iamtheozzz/lark-knowledge-ai/releases/latest
-# 下载 main.js / manifest.json / styles.css 到 $DIR
-
-# 4. 最小配置（其余全部走默认值）
 cat > "$DIR/data.json" <<'JSON'
 { "chatModel": "qwen3.5:9b-mlx" }
 JSON
