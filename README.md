@@ -81,7 +81,7 @@ Conversations move freely between all three, and can take over new tabs as a hom
 ## Installation
 
 > **In a hurry?** If you use Claude Code, Codex or a similar CLI agent, just hand it
-> this README and let it do the install — see [Method 4](#method-4-hand-this-readme-to-an-ai-agent).
+> this README and let it do the install — see [Method 2](#method-2-hand-this-readme-to-an-ai-agent).
 
 ### 1. Obsidian
 
@@ -161,7 +161,7 @@ The plugin has a **separate** "Vision model" setting so it can differ from your 
 
 ### 4. Install the plugin
 
-**Method 1: From the community directory (recommended)**
+**Method 1: From the community directory**
 
 Open it directly in Obsidian:
 
@@ -171,29 +171,13 @@ Or find it yourself: *Settings → Community plugins → Browse* → search for 
 
 Updates arrive through Obsidian like any other community plugin.
 
-**Method 2: BRAT (for testing pre-release builds)**
-
-1. Install the community plugin **BRAT** (Beta Reviewers Auto-update Tool)
-2. Open BRAT settings → `Add Beta Plugin`
-3. Enter `iamtheozzz/lark-knowledge-ai`
-
-**Method 3: Manual**
-
-1. Download the three files from the latest [release](https://github.com/iamtheozzz/lark-knowledge-ai/releases):
-   `main.js`, `manifest.json`, `styles.css`
-2. Create the folder `<your vault>/.obsidian/plugins/lark-knowledge-ai/`
-3. Put the three files there
-4. Restart Obsidian and enable **Lark Knowledge AI** under *Settings → Community plugins*
-
-> `.obsidian` is hidden. On macOS press `Cmd+Shift+.` in Finder to reveal hidden files.
-
-**Method 4: Hand this README to an AI agent**
+**Method 2: Hand this README to an AI agent**
 
 If you use Claude Code, Codex or similar, just say:
 
 > Install Lark Knowledge AI for me following this README (attach this file)
 
-Everything up to the last step — installing Obsidian and Ollama, pulling models, placing the plugin files, writing the config — can be done for you. The equivalent commands, if you'd rather run them yourself:
+Everything except the install click — Obsidian, Ollama, the models, the config — can be done for you. The equivalent commands, if you'd rather run them yourself:
 
 ```bash
 # 1. Obsidian and Ollama
@@ -209,7 +193,7 @@ ollama pull qwen3.5:9b-mlx           # 16 GB RAM or more
 
 # 3. Install the plugin — easiest is to open this in Obsidian:
 #    obsidian://show-plugin?id=lark-knowledge-ai
-#    (Or download the three release assets manually; see Method 3 above.)
+#    Obsidian has no CLI for installing plugins, so this one click is on you.
 
 # 4. Optional: preset the chat model instead of picking it in settings
 VAULT="$HOME/Documents/MyVault"

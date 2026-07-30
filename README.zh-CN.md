@@ -80,7 +80,7 @@
 ## 安装
 
 > **赶时间？** 如果你在用 Claude Code、Codex 这类命令行 AI，
-> 可以直接把这份 README 丢给它，让它照着装——见下方[方式四](#方式四把这份-readme-丢给-ai-agent)。
+> 可以直接把这份 README 丢给它，让它照着装——见下方[方式二](#方式二把这份-readme-丢给-ai-agent)。
 
 ### 1. Obsidian
 
@@ -163,7 +163,7 @@ ollama pull gemma4:e4b
 
 ### 4. 安装插件
 
-**方式一：从社区插件库安装（推荐）**
+**方式一：从社区插件库安装**
 
 直接在 Obsidian 里打开：
 
@@ -173,29 +173,13 @@ ollama pull gemma4:e4b
 
 之后的更新和其他社区插件一样，Obsidian 会自动提示。
 
-**方式二：BRAT（想用预发布版本时）**
-
-1. 在 Obsidian 里安装社区插件 **BRAT**（Beta Reviewers Auto-update Tool）
-2. 打开 BRAT 设置 → `Add Beta Plugin`
-3. 填入 `iamtheozzz/lark-knowledge-ai`
-
-**方式三：手动安装**
-
-1. 到 [Releases](https://github.com/iamtheozzz/lark-knowledge-ai/releases) 页下载最新版的三个文件：
-   `main.js`、`manifest.json`、`styles.css`
-2. 在你的库里新建目录：`<你的库>/.obsidian/plugins/lark-knowledge-ai/`
-3. 把三个文件放进去
-4. 重启 Obsidian，在「设置 → 第三方插件」里启用 **Lark Knowledge AI**
-
-> `.obsidian` 是隐藏目录。macOS 上在 Finder 里按 `Cmd+Shift+.` 显示隐藏文件。
-
-**方式四：把这份 README 丢给 AI agent**
+**方式二：把这份 README 丢给 AI agent**
 
 如果你在用 Claude Code、Codex 或类似的命令行 AI，可以直接对它说：
 
 > 照着这份 README 帮我把 Lark Knowledge AI 装好（附上本文件）
 
-前面的步骤（装 Obsidian、装 Ollama、拉模型、放插件文件、写配置）它都能代劳。
+除了「点一下安装」这一步，其余（装 Obsidian、装 Ollama、拉模型、写配置）它都能代劳。
 下面是等价的命令，你也可以自己执行：
 
 ```bash
@@ -212,7 +196,7 @@ ollama pull qwen3.5:9b-mlx           # 内存 ≥ 16 GB
 
 # 3. 装插件 —— 最省事的办法是在 Obsidian 里打开这个链接：
 #    obsidian://show-plugin?id=lark-knowledge-ai
-#    （也可以手动下载三个 Release 附件，见上面的方式三）
+#    Obsidian 没有安装插件的命令行接口，这一下必须你自己点
 
 # 4. 可选：预先写好对话模型，省得进设置页选
 VAULT="$HOME/Documents/MyVault"
