@@ -5,7 +5,7 @@ import { embedBase } from "../models";
 import { aboutUserPrompt, bareQuestion, rewritePrompt, speaker, systemPrompt, userPrompt } from "../prompts";
 import type { KnowledgeAiSettings } from "../settings";
 import { StreamCleaner } from "../clean";
-import { keyTerms, timeRange } from "../query";
+import { keyTerms, needsRewrite, timeRange } from "../query";
 import { ctxFromError, streamChat } from "../stream";
 import type { AiBackend, AskEvent, AskOptions, Source, Turn } from "./types";
 
@@ -60,17 +60,27 @@ export class LocalBackend implements AiBackend {
         return;
       }
 
-      // 追问不能直接拿去检索：「那第二点展开说说」没有可检索的实词
-      const query = history.length
-        ? await this.rewrite(question, history, lang, signal)
-        : question;
+      // 追问不能直接拿去检索：「那第二点展开说说」没有可检索的实词。
+      // 但只有真的含指代时才值得改写——见 needsRewrite。
+      const rewritten =
+        history.length && needsRewrite(question)
+          ? await this.rewrite(question, history, lang, signal)
+          : null;
+      if (signal.aborted) return;
+
+      // 改写句只用来「补」，不用来「换」。
+      // 原来是拿改写句替换原句去检索，一旦改写丢了关键词，原句本来能召回的
+      // 材料就彻底拿不到了——实测原句能以 0.63 / 0.56 命中的两篇文章，
+      // 换成改写句后一篇都没进来。两句各检索一次再融合，改写就只会加不会减。
+      const queries =
+        rewritten && rewritten !== question ? [question, rewritten] : [question];
 
       const emb = new Embedder(
         embedBase(this.settings),
         this.settings.embedModel,
         this.settings.apiKey
       );
-      const [qv] = await emb.embed([query]);
+      const qvs = await emb.embed(queries);
       if (signal.aborted) return;
 
 
@@ -90,7 +100,9 @@ export class LocalBackend implements AiBackend {
 
       const range = timeRange(question);
       const since = range?.since;
-      const dense = this.store.search(qv, k * 6, th, scope, since);
+      // 每个查询单独排一份名次，交给 RRF 融合。合并成一个大列表再排序是不行的：
+      // 两句的余弦分数不可比，分数偏高的那句会整体压过另一句。
+      const denseLists = qvs.map((qv) => this.store.search(qv, k * 6, th, scope, since));
 
       // 混合检索：语义那一路对罕见专有名词是盲区。实测问一个四字母缩写时
       // 最高分只有 0.439、过不了阈值，插件会回答「库里没有」——而库里有 3 段；
@@ -99,7 +111,8 @@ export class LocalBackend implements AiBackend {
       const terms = keyTerms(question);
       const lexical = terms.length ? this.store.keyword(terms, k * 3, scope, since) : [];
 
-      let hits = twoTier(dedupe(fuse(dense, lexical)), k);      // 限定文件时，无条件把每个文件开头带上——标题和摘要在那里，
+      let hits = twoTier(dedupe(fuse(...denseLists, lexical)), k);
+      // 限定文件时，无条件把每个文件开头带上——标题和摘要在那里，
       // 而「这篇讲了什么」的语义最接近的其实是结论页和参考文献页。
       if (scope?.length) {
         const per = scope.length === 1 ? 2 : 1;
@@ -381,11 +394,11 @@ function toSources(hits: Hit[]): Source[] {
  * 只出现在一路里的结果不会被埋没：k=60 时第 1 名得 1/61，第 20 名得 1/80，
  * 差距是温和的，所以字面检索独有的命中仍然排得进前列。
  */
-function fuse(dense: Hit[], lexical: Hit[]): Hit[] {
+function fuse(...lists: Hit[][]): Hit[] {
   const K = 60;
   const rank = new Map<string, { hit: Hit; score: number }>();
   const key = (h: Hit) => `${h.path}#${h.page}#${h.line}`;
-  for (const list of [dense, lexical]) {
+  for (const list of lists) {
     list.forEach((h, i) => {
       const id = key(h);
       const prev = rank.get(id);
