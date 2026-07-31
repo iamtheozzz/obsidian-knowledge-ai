@@ -102,7 +102,16 @@ export class LocalBackend implements AiBackend {
       const since = range?.since;
       // 每个查询单独排一份名次，交给 RRF 融合。合并成一个大列表再排序是不行的：
       // 两句的余弦分数不可比，分数偏高的那句会整体压过另一句。
-      const denseLists = qvs.map((qv) => this.store.search(qv, k * 6, th, scope, since));
+      //
+      // 每个查询取两份：混排一份 + 只看笔记一份。
+      // 后者是必须的——twoTier 给笔记留了一半名额，但它只能从候选池里挑，
+      // 而候选池是混排取前 k*6 得来的。实测一个库里 96% 的段落来自 PDF，
+      // 前 48 名中 PDF 占 47 个，笔记只有 1 个：配额再大也没东西可填。
+      // 有一篇本该召回的笔记就卡在第 54 名，只差 6 名进不了窗口。
+      const denseLists = qvs.flatMap((qv) => [
+        this.store.search(qv, k * 6, th, scope, since),
+        this.store.search(qv, k * 6, th, scope, since, true),
+      ]);
 
       // 混合检索：语义那一路对罕见专有名词是盲区。实测问一个四字母缩写时
       // 最高分只有 0.439、过不了阈值，插件会回答「库里没有」——而库里有 3 段；
