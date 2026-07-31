@@ -567,8 +567,15 @@ export class Conversation {
           question,
           history: this.history,
           scope,
-          // 手选文件时 picked 非空，那是明确意图；只有靠 ctxFile 猜出来的才算推断
-          scopeInferred: this.picked.length === 0 && Boolean(ctxFile),
+          // 手选文件时 picked 非空，那是明确意图；只有靠 ctxFile 猜出来的才算推断。
+          //
+          // 「这页」例外：它的指向足够明确，不该被当成猜测。
+          // 说「这页」时若页码取不到（md 笔记没有页、或那页是扫描件提不出文字），
+          // pageHits 会是空的，从而落到普通检索这条路上——这时正确的降级是
+          // 「只在当前文件里找」，而不是退回全库。退回全库等于把用户
+          // 明确划定的范围整个丢掉，比召回质量差更糟。
+          scopeInferred:
+            this.picked.length === 0 && Boolean(ctxFile) && !isAboutCurrentPage(question),
           pinned: pageHits.length ? pageHits : undefined,
           images: images.length ? images : undefined,
           signal: this.controller.signal,
