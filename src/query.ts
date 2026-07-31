@@ -45,28 +45,6 @@ export function keyTerms(question: string): string[] {
   return [...out].slice(0, 8);
 }
 
-/**
- * 这句追问需不需要先改写成独立查询。
- *
- * 改写是为「那第二点展开说说」准备的——那种句子不含任何可检索的实词。
- * 但多数追问其实是完整的新问题，改写只会丢字：实测一句带引号的完整问题
- * 被改写后，原本 0.63 / 0.56 的两篇正确文章一篇都没进来，反而召回了
- * 一篇 0.53 的无关文章。所以宁可少改写。
- *
- * 判据只看句子开头和长度，不看句中有没有「这/那」——
- * 「这两个主张同时成立」里的「这」指的是同一句里刚说过的内容，
- * 不需要向历史求解。
- */
-const LEADING_ANAPHORA =
-  /^[\s"'「『“”（(]*(那|这|它|他|她|其中|前者|后者|接着|然后|继续|再|还有|另外|为什么|怎么|如何|展开|详细|具体|举例|第[一二三四五六七八九十百\d]+[点条个部分节]|上面|前面|刚才|之前|你说的|你提到)/;
-
-export function needsRewrite(followUp: string): boolean {
-  const s = followUp.trim();
-  // 太短的一定要改写：「继续」「为什么呢」本身没有可检索的实词
-  if (s.length < 15) return true;
-  return LEADING_ANAPHORA.test(s);
-}
-
 export interface TimeRange {
   /** 只要这个时间点之后修改过的文件 */
   since: number;
