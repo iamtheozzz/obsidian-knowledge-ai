@@ -567,6 +567,8 @@ export class Conversation {
           question,
           history: this.history,
           scope,
+          // 手选文件时 picked 非空，那是明确意图；只有靠 ctxFile 猜出来的才算推断
+          scopeInferred: this.picked.length === 0 && Boolean(ctxFile),
           pinned: pageHits.length ? pageHits : undefined,
           images: images.length ? images : undefined,
           signal: this.controller.signal,

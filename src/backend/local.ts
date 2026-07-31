@@ -38,7 +38,8 @@ export class LocalBackend implements AiBackend {
   ) {}
 
   async ask(opts: AskOptions, emit: (e: AskEvent) => void): Promise<void> {
-    const { question, history, scope, signal, images, pinned } = opts;
+    const { question, history, signal, images, pinned } = opts;
+    let { scope } = opts;
     const lang = resolveAnswerLang(this.settings.answerLang, question);
 
     try {
@@ -89,12 +90,12 @@ export class LocalBackend implements AiBackend {
       // 多给几段只是把同一篇读得更全，不会引进无关内容。
       // 47 页的论文有 183 段，topK=8 只覆盖 4.4%——问「后训练怎么做的」
       // 这种要翻正文的问题根本不够。
-      const k = scope?.length ? Math.max(this.settings.topK, SCOPED_TOPK) : this.settings.topK;
+      let k = scope?.length ? Math.max(this.settings.topK, SCOPED_TOPK) : this.settings.topK;
       // 限定文件后阈值要放低。0.5 是为全库检索定的——那里必须挡住无关文档。
       // 范围已经收窄到指定文件时，相关性由 scope 保证，阈值反而成了瓶颈：
       // 实测 47 页的论文里只有 5 段过得了 0.5，把 topK 从 8 加到 24 完全没用，
       // 拿到的是同样 4 页材料。放到 0.3 之后覆盖 23 个页面，答案细得多。
-      const th = scope?.length
+      let th = scope?.length
         ? Math.min(this.settings.threshold, SCOPED_THRESHOLD)
         : this.settings.threshold;
 
@@ -108,10 +109,28 @@ export class LocalBackend implements AiBackend {
       // 而候选池是混排取前 k*6 得来的。实测一个库里 96% 的段落来自 PDF，
       // 前 48 名中 PDF 占 47 个，笔记只有 1 个：配额再大也没东西可填。
       // 有一篇本该召回的笔记就卡在第 54 名，只差 6 名进不了窗口。
-      const denseLists = qvs.flatMap((qv) => [
-        this.store.search(qv, k * 6, th, scope, since),
-        this.store.search(qv, k * 6, th, scope, since, true),
-      ]);
+      const dense = (sc: string[] | undefined, kk: number, tt: number) =>
+        qvs.flatMap((qv) => [
+          this.store.search(qv, kk * 6, tt, sc, since),
+          this.store.search(qv, kk * 6, tt, sc, since, true),
+        ]);
+
+      let denseLists = dense(scope, k, th);
+
+      // 推断出来的范围可能是猜错的。「这个说法对吗」里的「这个」指的是
+      // 同一句刚引用的说法，不是碰巧开着的那份 PDF——一旦猜错，全库检索
+      // 被关掉、阈值从 0.5 降到 0.3，召回的全是那份无关文档的内容。
+      // 判据用限定后的最高分：真的在问这份文件时，它自己的段落轻松过 0.5；
+      // 猜错时连 0.5 都够不到（实测那次最高 0.46）。手选的范围不走这条路。
+      if (opts.scopeInferred && scope?.length) {
+        const best = Math.max(0, ...denseLists.flat().map((h) => h.score));
+        if (best < this.settings.threshold) {
+          scope = undefined;
+          k = this.settings.topK;
+          th = this.settings.threshold;
+          denseLists = dense(undefined, k, th);
+        }
+      }
 
       // 混合检索：语义那一路对罕见专有名词是盲区。实测问一个四字母缩写时
       // 最高分只有 0.439、过不了阈值，插件会回答「库里没有」——而库里有 3 段；
