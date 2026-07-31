@@ -376,21 +376,12 @@ export class IndexStore {
     return out.sort((a, b) => a.line - b.line);
   }
 
-  /**
-   * @param notesOnly 只在库内笔记里检索，不看 PDF。
-   *   给召回侧留一条专用通道：PDF 通常占索引的绝大多数，混排取窗口时
-   *   笔记会被整体挤掉，后面再谈「给笔记留名额」已经无米下锅。
-   */
-  search(
-    query: Float32Array, topK: number, threshold: number,
-    paths?: string[], since?: number, notesOnly?: boolean
-  ): Hit[] {
+  search(query: Float32Array, topK: number, threshold: number, paths?: string[], since?: number): Hit[] {
     if (this.metas.length === 0 || query.length !== this.dim) return [];
     const scored: Hit[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       const m = this.metas[i];
       if (this.blocked(m.path)) continue;
-      if (notesOnly && /\.pdf$/i.test(m.path)) continue;
       if (paths?.length && !paths.some((p) => m.path.startsWith(p))) continue;
       if (since && m.mtime < since) continue;
       let s = 0;
