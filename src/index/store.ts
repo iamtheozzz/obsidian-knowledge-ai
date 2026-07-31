@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { normalizePath } from "obsidian";
+import { isIgnored, normalizeIgnoreList } from "./ignore";
 
 export interface ChunkMeta {
   path: string;    // 库内相对路径
@@ -40,6 +41,33 @@ interface StoreHeader {
  * 三个文件：header.json（模型和维度）/ chunks.jsonl（元数据）/ vectors.bin（Float32）。
  * 规模在几万块以内，整体载入内存后检索就是一次矩阵乘，够快也够简单。
  */
+/** 模糊匹配的护栏。每一条都是为了防止它变成「什么都能匹配」 */
+const FUZZY_MIN_COVERAGE = 0.7;   // 片段覆盖率低于此不算命中
+const FUZZY_MIN_GRAMS = 3;        // 切不出三个片段的词太短，不做模糊
+const FUZZY_MAX_TERMS = 3;        // 最多几条词走模糊，每条都要再扫一遍全库
+const FUZZY_DF_TRIGGER = 2;       // 精确命中多于这个数就说明字面检索够用了
+const FUZZY_MAX_DF_RATIO = 0.05;  // 命中超过全库 5% 说明没有区分度，丢弃
+const FUZZY_WEIGHT = 0.7;         // 模糊命中相对精确命中的折价
+
+/**
+ * 把词切成用于模糊比对的片段。
+ *
+ * 中文按相邻二元组：改一个字只会破坏跨过它的那两个二元组，其余照常命中，
+ * 「变强的唯一路径是心不受力」对「变强的唯一路径：心不受力」能到 0.82 覆盖率。
+ * ASCII 按单词切——那类词的变体是词序和连接符差异，不是字符差异。
+ */
+function gramsOf(term: string): string[] {
+  const s = term.toLowerCase().trim();
+  if (/^[\x20-\x7e]+$/.test(s)) {
+    return [...new Set(s.split(/[^a-z0-9]+/).filter((w) => w.length >= 2))];
+  }
+  // 标点在复述时最不稳定（全角半角、有无顿号），先去掉再切
+  const c = s.replace(/[\s\p{P}\p{S}]+/gu, "");
+  const out: string[] = [];
+  for (let i = 0; i + 2 <= c.length; i++) out.push(c.slice(i, i + 2));
+  return [...new Set(out)];
+}
+
 export class IndexStore {
   private dir: string;
   private metas: ChunkMeta[] = [];
@@ -47,14 +75,34 @@ export class IndexStore {
   private dim = 0;
   private model = "";
 
+  /** 忽略规则的副本。查询期兜底过滤用，由 main 在设置变动时同步进来。 */
+  private ignored: string[] = [];
+
   constructor(vaultName: string, customDir: string) {
+    const fallback = path.join(defaultRoot(), sanitize(vaultName));
     // 用户手填的路径先过 normalizePath：官方指南要求用它清理用户输入的路径，
     // 它会统一分隔符、去掉多余的斜杠和首尾空白。~ 要在那之前展开——
     // normalizePath 不认识它，留着会变成一个名叫 "~" 的目录。
-    this.dir = customDir
-      ? path.resolve(normalizePath(customDir.trim().replace(/^~(?=$|[/\\])/, os.homedir())))
-      : path.join(defaultRoot(), sanitize(vaultName));
+    const raw = customDir.trim().replace(/^~(?=$|[/\\])/, os.homedir());
+    if (!raw) {
+      this.dir = fallback;
+      return;
+    }
+    // 相对路径一律拒绝。原来这里直接 path.resolve()，而 Obsidian 进程的
+    // 工作目录是 "/"，于是「llm/llm_test」被解析成「/llm/llm_test」——
+    // macOS 的根分区只读，这个目录永远建不出来，索引写到第 30 篇就 EROFS 崩掉，
+    // 界面上看起来却像「库里只有 30 篇笔记」。宁可退回默认位置，
+    // 也不要生成一个用户根本没打算指定的路径。
+    if (!path.isAbsolute(raw)) {
+      this.dir = fallback;
+      this.dirError = raw;
+      return;
+    }
+    this.dir = path.resolve(normalizePath(raw));
   }
+
+  /** 填了但不合法的存储路径。设置页要据此提示，否则用户不知道自己填的被忽略了 */
+  dirError: string | null = null;
 
   get location(): string {
     return this.dir;
@@ -152,6 +200,25 @@ export class IndexStore {
     this.metas.push(...metas);
   }
 
+  /**
+   * 存储目录能不能建、能不能写。
+   *
+   * 索引跑到一半才发现路径不可写是最糟的失败方式：几十分钟的嵌入白算，
+   * 而且已经写进内存的删除操作可能已经落盘。开跑前先探一次，
+   * 让错误出现在用户刚点下按钮的时候。
+   */
+  async checkWritable(): Promise<string | null> {
+    try {
+      await fs.promises.mkdir(this.dir, { recursive: true });
+      const probe = path.join(this.dir, ".write-probe");
+      await fs.promises.writeFile(probe, "");
+      await fs.promises.unlink(probe);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+
   async save(): Promise<void> {
     await fs.promises.mkdir(this.dir, { recursive: true });
     const head: StoreHeader = {
@@ -179,7 +246,23 @@ export class IndexStore {
    * 参考文献那几页——那些段落读起来最像「总结」。但用户要的是摘要。
    * 标题和摘要就在文件开头，直接按位置取，不参与打分。
    */
+  /**
+   * 同步忽略规则。
+   *
+   * 只把「不在索引里」当作忽略手段是不够的：文件可能在规则生效前就已入库，
+   * 也可能因为改名、编辑而重新进来，而这些情况从设置页上完全看不出来。
+   * 所以查询期再挡一道——这里是所有检索的唯一出口，挡在这里就漏不掉。
+   */
+  setIgnored(folders: string[]): void {
+    this.ignored = normalizeIgnoreList(folders ?? []);
+  }
+
+  private blocked(p: string): boolean {
+    return this.ignored.length > 0 && isIgnored(p, this.ignored);
+  }
+
   headOf(path: string, n: number): Hit[] {
+    if (this.blocked(path)) return [];
     const idx: number[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       if (this.metas[i].path === path) idx.push(i);
@@ -201,6 +284,11 @@ export class IndexStore {
    * 打分用简化的 IDF：一个词出现在越少的段落里，命中它越值钱。
    * 不做分词——中文分词在浏览器里没有好用的实现，而真正需要字面检索的
    * 恰恰是缩写、型号、代号这类 ASCII 专有名词，直接 indexOf 就够。
+   *
+   * 精确匹配一条都没中的长词会再走一次模糊匹配。起因是用户复述标题时
+   * 极少一字不差：问「变强的唯一路径是心不受力」，原文写的是
+   * 「变强的唯一路径：心不受力」——只差一个字，indexOf 全军覆没。
+   * 只对 df=0 的词启用，所以正常情况下没有任何额外开销。
    */
   keyword(terms: string[], topK: number, paths?: string[], since?: number): Hit[] {
     if (terms.length === 0) return [];
@@ -211,6 +299,7 @@ export class IndexStore {
     const inScope: number[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       const m = this.metas[i];
+      if (this.blocked(m.path)) continue;
       if (paths?.length && !paths.some((p) => m.path.startsWith(p))) continue;
       if (since && m.mtime < since) continue;
       inScope.push(i);
@@ -221,7 +310,41 @@ export class IndexStore {
     }
     if (inScope.length === 0) return [];
 
-    const idf = df.map((d) => (d === 0 ? 0 : Math.log(1 + inScope.length / d)));
+    // 模糊兜底：救精确匹配几乎没命中的长词。
+    // 判据不能写成 df==0——库里只要有一处一字不差地引用过（比如自己那份
+    // 摘抄），df 就是 1，兜底永远不触发，而真正想找的原文照样漏掉。
+    // 限制并发条数是为了兜住最坏情况：每条都要再扫一遍全库。
+    const fuzzy = new Map<number, { grams: string[]; cov: Map<number, number>; df: number }>();
+    for (let t = 0; t < lower.length && fuzzy.size < FUZZY_MAX_TERMS; t++) {
+      if (df[t] > FUZZY_DF_TRIGGER) continue;
+      const g = gramsOf(lower[t]);
+      if (g.length < FUZZY_MIN_GRAMS) continue;   // 太短的词模糊化只会制造噪音
+      fuzzy.set(t, { grams: g, cov: new Map(), df: 0 });
+    }
+    if (fuzzy.size) {
+      for (const i of inScope) {
+        const text = this.metas[i].text.toLowerCase();
+        for (const [t, f] of fuzzy) {
+          let hit = 0;
+          for (const g of f.grams) if (text.includes(g)) hit++;
+          const c = hit / f.grams.length;
+          if (c >= FUZZY_MIN_COVERAGE) {
+            f.cov.set(i, c);
+            f.df++;
+          }
+        }
+      }
+      // 一个片段几乎处处都在（比如全是常见字）说明这个词模糊化之后
+      // 已经没有区分度，整条丢掉，免得把半个库都拉进来
+      for (const [t, f] of fuzzy) {
+        if (f.df === 0 || f.df > inScope.length * FUZZY_MAX_DF_RATIO) fuzzy.delete(t);
+      }
+    }
+
+    const idf = lower.map((_, t) => {
+      const d = df[t] || fuzzy.get(t)?.df || 0;
+      return d === 0 ? 0 : Math.log(1 + inScope.length / d);
+    });
     const scored: Hit[] = [];
     for (const i of inScope) {
       const text = this.metas[i].text.toLowerCase();
@@ -230,7 +353,12 @@ export class IndexStore {
         if (!idf[t]) continue;
         // 出现次数取对数：一段里重复十次不该比出现两次值钱五倍
         const n = countOf(text, lower[t]);
-        if (n) s += idf[t] * (1 + Math.log(n));
+        let w = n ? 1 + Math.log(n) : 0;
+        // 模糊命中按覆盖率折价，再整体压一档：同一段里两者都成立时取较大的，
+        // 精确命中不该因为顺带算了一次模糊而被压低
+        const c = fuzzy.get(t)?.cov.get(i);
+        if (c) w = Math.max(w, c * FUZZY_WEIGHT);
+        if (w) s += idf[t] * w;
       }
       if (s > 0) scored.push({ ...this.metas[i], score: s });
     }
@@ -240,6 +368,7 @@ export class IndexStore {
 
   /** 某个文件某一页的全部段落，按顺序。「这页讲了什么」用它，不走相似度。 */
   pageOf(path: string, page: number): Hit[] {
+    if (this.blocked(path)) return [];
     const out: Hit[] = [];
     for (const m of this.metas) {
       if (m.path === path && m.page === page) out.push({ ...m, score: 1 });
@@ -252,6 +381,7 @@ export class IndexStore {
     const scored: Hit[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       const m = this.metas[i];
+      if (this.blocked(m.path)) continue;
       if (paths?.length && !paths.some((p) => m.path.startsWith(p))) continue;
       if (since && m.mtime < since) continue;
       let s = 0;

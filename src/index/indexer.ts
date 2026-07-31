@@ -4,6 +4,7 @@ import { Embedder } from "../embedder";
 import { chunkText, pageMap } from "./chunker";
 import { cacheKey, cleanPdfCache, extractPdf, pdfAvailable } from "./pdf";
 import { describeImage, isImage } from "./describe";
+import { isIgnored } from "./ignore";
 import type { KnowledgeAiSettings } from "../settings";
 import { IndexStore, type ChunkMeta } from "./store";
 
@@ -49,6 +50,10 @@ export class Indexer {
     const t0 = performance.now();
 
     try {
+      // 先确认存储目录可写。放在最前面：路径不可写时，后面每一步都是白做的
+      const werr = await this.store.checkWritable();
+      if (werr) throw new Error(`索引存储位置不可写（${this.store.location}）：${werr}`);
+
       // 换模型会让旧向量不可比，setModel 内部会作废重建
       const probe = await this.embedder.probe();
       this.store.setModel(this.embedder.model, probe.dim);
@@ -72,45 +77,70 @@ export class Indexer {
 
         const isPdf = file.extension.toLowerCase() === "pdf";
         const isImg = isImage(file);
-        let body: string;
-        if (isImg) {
-          const d = await describeImage(this.vault, file, this.settings, this.imgCacheDir);
-          if (d.error || !d.text) {
-            failed.push(`${file.name}: ${d.error ?? "描述为空"}`);
-            continue;
-          }
-          // 描述文本前面带上文件名，让「找那张架构图」这类问题也能命中
-          body = `${file.name}\n\n${d.text}`;
-        } else if (isPdf) {
-          const r = await extractPdf(this.vault, file, this.pdfCacheDir);
-          if ("error" in r) {
-            failed.push(`${file.name}: ${r.error}`);
-            continue;
-          }
-          body = r.text;
-        } else {
-          body = await this.vault.cachedRead(file);
-        }
-        // PDF 的块要带页码，引用时才能说「第 678 页」而不是「行 47369」
-        const cks = chunkText(body, isPdf ? pageMap(body) : undefined);
-        this.store.removePaths(new Set([file.path]));   // 先清旧块再写新块
 
-        for (let b = 0; b < cks.length; b += EMBED_BATCH) {
+        // 单个文件的失败不该带走整轮索引。
+        // 早先只有 describeImage / extractPdf 会返回错误对象、被跳过；
+        // cachedRead、embed、store.add 抛出的异常会一路冒到最外层，
+        // 后面几千个文件一个都不再处理——而界面上只有一句笼统的报错。
+        // 实测触发过：把存储位置填成只读路径，save() 抛 EROFS，
+        // 索引停在第 30 篇，看上去就像「库里只有 30 篇笔记」。
+        try {
+          let body: string;
+          if (isImg) {
+            const d = await describeImage(this.vault, file, this.settings, this.imgCacheDir);
+            if (d.error || !d.text) {
+              failed.push(`${file.name}: ${d.error ?? "描述为空"}`);
+              continue;
+            }
+            // 描述文本前面带上文件名，让「找那张架构图」这类问题也能命中
+            body = `${file.name}\n\n${d.text}`;
+          } else if (isPdf) {
+            const r = await extractPdf(this.vault, file, this.pdfCacheDir);
+            if ("error" in r) {
+              failed.push(`${file.name}: ${r.error}`);
+              continue;
+            }
+            body = r.text;
+          } else {
+            body = await this.vault.cachedRead(file);
+          }
+          // PDF 的块要带页码，引用时才能说「第 678 页」而不是「行 47369」
+          const cks = chunkText(body, isPdf ? pageMap(body) : undefined);
+
+          // 先把新块算完再删旧块。反过来做的话，嵌入中途失败就意味着
+          // 旧块已经删了、新块没写进去——这个文件从索引里静默消失，
+          // 而且下一次落盘会把这个状态固化下来
+          const fresh: { metas: ChunkMeta[]; vecs: Float32Array[] }[] = [];
+          for (let b = 0; b < cks.length; b += EMBED_BATCH) {
+            if (this.aborted) break;
+            const batch = cks.slice(b, b + EMBED_BATCH);
+            const vecs = await this.embedder.embed(batch.map((c) => c.text));
+            fresh.push({
+              metas: batch.map((c) => ({
+                path: file.path,
+                mtime: file.stat.mtime,
+                line: c.line,
+                page: c.page,
+                text: c.text,
+              })),
+              vecs,
+            });
+          }
           if (this.aborted) break;
-          const batch = cks.slice(b, b + EMBED_BATCH);
-          const vecs = await this.embedder.embed(batch.map((c) => c.text));
-          const metas: ChunkMeta[] = batch.map((c) => ({
-            path: file.path,
-            mtime: file.stat.mtime,
-            line: c.line,
-            page: c.page,
-            text: c.text,
-          }));
-          this.store.add(metas, vecs);
-          chunks += metas.length;
+
+          this.store.removePaths(new Set([file.path]));
+          for (const f of fresh) {
+            this.store.add(f.metas, f.vecs);
+            chunks += f.metas.length;
+          }
+        } catch (e) {
+          failed.push(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+          continue;
         }
 
-        // 每处理完一个文件就落盘一次，中途退出也不用从头再来
+        // 每处理完一个文件就落盘一次，中途退出也不用从头再来。
+        // 落盘失败是全局性的（磁盘满、路径不可写），继续跑下去没有意义，
+        // 直接抛出去让外层报错——这与单个文件失败是两回事
         if (i % 10 === 9) await this.store.save();
       }
 
@@ -149,21 +179,4 @@ export class Indexer {
 
 function isPdfFile(f: TFile): boolean {
   return f.extension.toLowerCase() === "pdf";
-}
-
-/**
- * 这个路径是否落在被忽略的文件夹里。
- *
- * 按路径段比较，不用 startsWith 裸比——否则填 "Eval" 会连
- * "Evaluation/" 一起挡掉。填单个文件的完整路径也支持，
- * 因为想藏起来的往往就是某一个文件而不是整个目录。
- */
-export function isIgnored(filePath: string, ignoreFolders: string[]): boolean {
-  if (!ignoreFolders?.length) return false;
-  const p = filePath.replace(/^\/+/, "");
-  return ignoreFolders.some((raw) => {
-    const d = raw.trim().replace(/^\/+/, "").replace(/\/+$/, "");
-    if (!d) return false;
-    return p === d || p.startsWith(d + "/");
-  });
 }

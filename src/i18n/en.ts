@@ -125,6 +125,7 @@ const en: Record<keyof typeof zh, string> = {
   "settings.index.embedModel": "Embedding model",
   "settings.index.storage": "Storage location",
   "settings.index.storageDesc": "Kept outside the vault by default so it is not synced",
+  "settings.index.storageRelative": "⚠ \"{path}\" is a relative path; it was ignored and the default location is used. This field needs an absolute path.",
   "settings.index.status": "Index status",
 
   "settings.advanced.section": "Advanced",

@@ -129,6 +129,7 @@ export default {
   "settings.index.embedModel": "嵌入模型",
   "settings.index.storage": "存储位置",
   "settings.index.storageDesc": "默认存在库之外，避免被同步",
+  "settings.index.storageRelative": "⚠ 「{path}」是相对路径，已忽略并退回默认位置。这一栏需要填绝对路径（如 /Users/你/索引目录）",
   "settings.index.status": "索引状态",
 
   // —— 设置：高级 ——

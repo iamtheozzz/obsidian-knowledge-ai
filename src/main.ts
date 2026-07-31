@@ -10,7 +10,8 @@ import { getUiLang, setUiLang, t } from "./i18n";
 import { Embedder } from "./embedder";
 import { embedBase } from "./models";
 import { IndexStore } from "./index/store";
-import { Indexer, isIgnored, type Progress } from "./index/indexer";
+import { Indexer, type Progress } from "./index/indexer";
+import { isIgnored } from "./index/ignore";
 
 export default class KnowledgeAiPlugin extends Plugin {
   settings: KnowledgeAiSettings = DEFAULT_SETTINGS;
@@ -25,6 +26,11 @@ export default class KnowledgeAiPlugin extends Plugin {
 
     this.store = new IndexStore(this.app.vault.getName(), this.settings.indexDir);
     await this.store.load();
+    this.store.setIgnored(this.settings.ignoreFolders);
+    // 规则可能是在插件没运行时改的（手动编辑 data.json、多设备同步），
+    // 那种情况下 purge 从没跑过。查询期已经挡住了，这里只是顺手把
+    // 索引里的死块清掉，让体积和文件计数保持诚实。
+    void this.purgeIgnored();
 
     this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
     this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
@@ -374,6 +380,8 @@ export default class KnowledgeAiPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     setUiLang(this.settings.uiLang);
+    // 忽略规则改了要立刻推给 store，否则查询期还按旧规则过滤
+    this.store?.setIgnored(this.settings.ignoreFolders);
   }
 
   notify(msg: string) {
