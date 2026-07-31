@@ -3,6 +3,7 @@ import { t } from "./i18n";
 import { testChat, testEmbed, testPdf, testVision } from "./tester";
 import { listEmbedModels, listModels, modelLabel, type ModelInfo, type ModelList } from "./models";
 import type KnowledgeAiPlugin from "./main";
+import { normalizeIgnoreList } from "./index/ignore";
 
 export class KnowledgeAiSettingTab extends PluginSettingTab {
   private plugin: KnowledgeAiPlugin;
@@ -10,6 +11,8 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
   private models: ModelList | null = null;
   private embedModels: ModelInfo[] | null = null;
   private detecting = false;
+  /** 提交忽略规则。由 display() 建好，blur 和 hide() 共用 */
+  private flushIgnore: ((redraw: boolean) => Promise<void>) | null = null;
 
   constructor(app: App, plugin: KnowledgeAiPlugin) {
     super(app, plugin);
@@ -17,6 +20,9 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
   }
 
   hide(): void {
+    // 填完忽略规则直接关窗时 blur 不一定触发，这里补一次提交。
+    // 不重绘——页面正在关闭
+    void this.flushIgnore?.(false);
     // 关掉设置页后重新探测，端点或已装模型可能变了
     this.models = null;
     this.embedModels = null;
@@ -211,22 +217,20 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ignoreFolders.join("\n"));
         x.inputEl.rows = 4;
         x.inputEl.addClass("kai-ignore-input");
-        // 只在失焦时落盘：onChange 逐字符触发，边打字边 purge
-        // 会把还没输完的半截路径当成规则，先删掉一批块再加回来
-        x.inputEl.addEventListener("blur", async () => {
-          const next = x
-            .getValue()
-            .split("\n")
-            .map((s) => s.trim())
-            .filter(Boolean);
+        // 不用 onChange 落盘：它逐字符触发，边打字边 purge 会把还没输完的
+        // 半截路径当成规则，先删掉一批块再加回来。改为失焦时提交，
+        // 并在设置页关闭时补一次——否则填完直接关窗，这一栏就白填了
+        this.flushIgnore = async (redraw: boolean) => {
+          const next = normalizeIgnoreList(x.getValue().split("\n"));
           const prev = this.plugin.settings.ignoreFolders;
           if (next.length === prev.length && next.every((v, i) => v === prev[i])) return;
           this.plugin.settings.ignoreFolders = next;
           await this.plugin.saveSettings();
           const removed = await this.plugin.purgeIgnored();
           if (removed > 0) this.plugin.notify(t("index.ignorePurged", { n: removed }));
-          this.display();
-        });
+          if (redraw) this.display();
+        };
+        x.inputEl.addEventListener("blur", () => void this.flushIgnore?.(true));
       });
     // 填完立刻能看到挡住了多少个文件，否则完全不知道规则有没有写对
     ignoreSetting.descEl.createDiv({
