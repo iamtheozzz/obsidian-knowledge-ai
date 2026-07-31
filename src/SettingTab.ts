@@ -203,6 +203,37 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         })
       );
 
+    const ignoreSetting = new Setting(c)
+      .setName(t("settings.index.ignore"))
+      .setDesc(t("settings.index.ignoreDesc"))
+      .addTextArea((x) => {
+        x.setPlaceholder(t("settings.index.ignorePlaceholder"))
+          .setValue(this.plugin.settings.ignoreFolders.join("\n"));
+        x.inputEl.rows = 4;
+        x.inputEl.addClass("kai-ignore-input");
+        // 只在失焦时落盘：onChange 逐字符触发，边打字边 purge
+        // 会把还没输完的半截路径当成规则，先删掉一批块再加回来
+        x.inputEl.addEventListener("blur", async () => {
+          const next = x
+            .getValue()
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const prev = this.plugin.settings.ignoreFolders;
+          if (next.length === prev.length && next.every((v, i) => v === prev[i])) return;
+          this.plugin.settings.ignoreFolders = next;
+          await this.plugin.saveSettings();
+          const removed = await this.plugin.purgeIgnored();
+          if (removed > 0) this.plugin.notify(t("index.ignorePurged", { n: removed }));
+          this.display();
+        });
+      });
+    // 填完立刻能看到挡住了多少个文件，否则完全不知道规则有没有写对
+    ignoreSetting.descEl.createDiv({
+      cls: "kai-hint",
+      text: t("settings.index.ignoreCount", { n: this.plugin.ignoredCount() }),
+    });
+
     new Setting(c)
       .setName(t("settings.index.includePdf"))
       .setDesc(t("settings.index.includePdfDesc"))

@@ -138,11 +138,32 @@ export class Indexer {
     if (this.settings.describeImages) {
       all = all.concat(this.vault.getFiles().filter(isImage));
     }
-    if (scopeFolders.length === 0) return all;
-    return all.filter((f) => scopeFolders.some((d) => f.path.startsWith(d.replace(/\/*$/, "/"))));
+    if (scopeFolders.length > 0) {
+      all = all.filter((f) => scopeFolders.some((d) => f.path.startsWith(d.replace(/\/*$/, "/"))));
+    }
+    // 排除在范围之后：显式忽略优先于显式包含，
+    // 免得同时填了两处时还要猜哪个说了算
+    return all.filter((f) => !isIgnored(f.path, this.settings.ignoreFolders));
   }
 }
 
 function isPdfFile(f: TFile): boolean {
   return f.extension.toLowerCase() === "pdf";
+}
+
+/**
+ * 这个路径是否落在被忽略的文件夹里。
+ *
+ * 按路径段比较，不用 startsWith 裸比——否则填 "Eval" 会连
+ * "Evaluation/" 一起挡掉。填单个文件的完整路径也支持，
+ * 因为想藏起来的往往就是某一个文件而不是整个目录。
+ */
+export function isIgnored(filePath: string, ignoreFolders: string[]): boolean {
+  if (!ignoreFolders?.length) return false;
+  const p = filePath.replace(/^\/+/, "");
+  return ignoreFolders.some((raw) => {
+    const d = raw.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+    if (!d) return false;
+    return p === d || p.startsWith(d + "/");
+  });
 }

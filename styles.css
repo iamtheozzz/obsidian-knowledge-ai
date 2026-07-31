@@ -238,6 +238,20 @@
   margin-top: 2px;
 }
 
+.kai-hint {
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 忽略目录是多行输入，默认的单行宽度放不下一条路径 */
+.kai-ignore-input {
+  width: 100%;
+  min-width: 220px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  resize: vertical;
+}
+
 /* ── 附带的图片 ─────────────────────────────────────── */
 .kai-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--size-4-6) var(--size-4-3); }
 /* 没有附图时不占高度，否则输入框下面会多出一条空白 */

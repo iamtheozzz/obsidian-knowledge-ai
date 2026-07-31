@@ -10,7 +10,7 @@ import { getUiLang, setUiLang, t } from "./i18n";
 import { Embedder } from "./embedder";
 import { embedBase } from "./models";
 import { IndexStore } from "./index/store";
-import { Indexer, type Progress } from "./index/indexer";
+import { Indexer, isIgnored, type Progress } from "./index/indexer";
 
 export default class KnowledgeAiPlugin extends Plugin {
   settings: KnowledgeAiSettings = DEFAULT_SETTINGS;
@@ -117,7 +117,10 @@ export default class KnowledgeAiPlugin extends Plugin {
     const relevant = (f: TAbstractFile) =>
       f instanceof TFile &&
       (f.extension === "md" ||
-        (this.settings.includePdf && f.extension.toLowerCase() === "pdf"));
+        (this.settings.includePdf && f.extension.toLowerCase() === "pdf")) &&
+      // 忽略目录里的改动不该触发重建：那些文件本来就不进索引，
+      // 每存一次盘白跑一轮增量扫描
+      !isIgnored(f.path, this.settings.ignoreFolders);
 
     // 四个事件的回调签名不同，分开注册比循环更直白
     this.registerEvent(this.app.vault.on("create", (f) => { if (relevant(f)) kick(); }));
@@ -296,7 +299,32 @@ export default class KnowledgeAiPlugin extends Plugin {
   /** 库内图片数量，用于在设置里估算描述耗时 */
   imageCount(): number {
     return this.app.vault.getFiles().filter((f) =>
-      /^(png|jpe?g|webp|gif)$/i.test(f.extension)).length;
+      /^(png|jpe?g|webp|gif)$/i.test(f.extension) &&
+      !isIgnored(f.path, this.settings.ignoreFolders)).length;
+  }
+
+  /** 当前被忽略规则挡住的 md/pdf 数量，用于在设置页给出即时反馈 */
+  ignoredCount(): number {
+    return this.app.vault.getFiles().filter((f) =>
+      /^(md|pdf)$/i.test(f.extension) &&
+      isIgnored(f.path, this.settings.ignoreFolders)).length;
+  }
+
+  /**
+   * 把已经进过索引、但现在落在忽略目录里的块立刻删掉。
+   *
+   * 不能等下一次索引再顺带清理——改完设置的人期望的是「马上搜不到」，
+   * 而增量索引可能几小时后才被触发，这中间提问仍会召回它们。
+   */
+  async purgeIgnored(): Promise<number> {
+    const gone = new Set<string>();
+    for (const p of this.store.indexedPaths()) {
+      if (isIgnored(p, this.settings.ignoreFolders)) gone.add(p);
+    }
+    if (gone.size === 0) return 0;
+    this.store.removePaths(gone);
+    await this.store.save();
+    return gone.size;
   }
 
   /** PDF 提取文本的缓存目录，和索引放在一起 */
@@ -306,7 +334,8 @@ export default class KnowledgeAiPlugin extends Plugin {
 
   /** 粗估整库能切出多少块，用于「嵌入 Test」里换算索引耗时 */
   estimatedChunks(): number {
-    const files = this.app.vault.getMarkdownFiles();
+    const files = this.app.vault.getMarkdownFiles()
+      .filter((f) => !isIgnored(f.path, this.settings.ignoreFolders));
     const bytes = files.reduce((a, f) => a + f.stat.size, 0);
     return Math.max(1, Math.round(bytes / 1050));
   }

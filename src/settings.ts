@@ -21,6 +21,13 @@ export interface KnowledgeAiSettings {
 
   // 索引
   scopeFolders: string[];     // 空数组 = 全库
+
+  /** 不进索引的文件夹（也可以填单个文件的完整路径）。
+   *  优先级高于 scopeFolders：同时命中时以忽略为准。
+   *  典型用途是把测试题库、草稿、私人日记挡在检索之外——
+   *  这类文件留在库里有用，但被召回时会盖住真正该答的材料。 */
+  ignoreFolders: string[];
+
   includePdf: boolean;
   /** 索引时给每张图生成文字描述，让图片本身可被语义检索。
    *  代价很大（一张十几秒），默认关闭。 */
@@ -59,6 +66,7 @@ export const DEFAULT_SETTINGS: KnowledgeAiSettings = {
   answerLang: "auto",
 
   scopeFolders: [],
+  ignoreFolders: [],
   includePdf: true,
   describeImages: false,
   // 端点侧的嵌入模型名。bge-m3 多语言、质量好；
