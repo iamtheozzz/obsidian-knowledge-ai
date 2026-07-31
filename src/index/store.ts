@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { normalizePath } from "obsidian";
-import { isIgnored, normalizeIgnoreList } from "./ignore";
 
 export interface ChunkMeta {
   path: string;    // 库内相对路径
@@ -47,9 +46,6 @@ export class IndexStore {
   private vecs: Float32Array = new Float32Array(0);
   private dim = 0;
   private model = "";
-
-  /** 忽略规则的副本。查询期兜底过滤用，由 main 在设置变动时同步进来。 */
-  private ignored: string[] = [];
 
   constructor(vaultName: string, customDir: string) {
     // 用户手填的路径先过 normalizePath：官方指南要求用它清理用户输入的路径，
@@ -183,23 +179,7 @@ export class IndexStore {
    * 参考文献那几页——那些段落读起来最像「总结」。但用户要的是摘要。
    * 标题和摘要就在文件开头，直接按位置取，不参与打分。
    */
-  /**
-   * 同步忽略规则。
-   *
-   * 只把「不在索引里」当作忽略手段是不够的：文件可能在规则生效前就已入库，
-   * 也可能因为改名、编辑而重新进来，而这些情况从设置页上完全看不出来。
-   * 所以查询期再挡一道——这里是所有检索的唯一出口，挡在这里就漏不掉。
-   */
-  setIgnored(folders: string[]): void {
-    this.ignored = normalizeIgnoreList(folders ?? []);
-  }
-
-  private blocked(p: string): boolean {
-    return this.ignored.length > 0 && isIgnored(p, this.ignored);
-  }
-
   headOf(path: string, n: number): Hit[] {
-    if (this.blocked(path)) return [];
     const idx: number[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       if (this.metas[i].path === path) idx.push(i);
@@ -231,7 +211,6 @@ export class IndexStore {
     const inScope: number[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       const m = this.metas[i];
-      if (this.blocked(m.path)) continue;
       if (paths?.length && !paths.some((p) => m.path.startsWith(p))) continue;
       if (since && m.mtime < since) continue;
       inScope.push(i);
@@ -261,7 +240,6 @@ export class IndexStore {
 
   /** 某个文件某一页的全部段落，按顺序。「这页讲了什么」用它，不走相似度。 */
   pageOf(path: string, page: number): Hit[] {
-    if (this.blocked(path)) return [];
     const out: Hit[] = [];
     for (const m of this.metas) {
       if (m.path === path && m.page === page) out.push({ ...m, score: 1 });
@@ -274,7 +252,6 @@ export class IndexStore {
     const scored: Hit[] = [];
     for (let i = 0; i < this.metas.length; i++) {
       const m = this.metas[i];
-      if (this.blocked(m.path)) continue;
       if (paths?.length && !paths.some((p) => m.path.startsWith(p))) continue;
       if (since && m.mtime < since) continue;
       let s = 0;

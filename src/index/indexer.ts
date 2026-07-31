@@ -4,7 +4,6 @@ import { Embedder } from "../embedder";
 import { chunkText, pageMap } from "./chunker";
 import { cacheKey, cleanPdfCache, extractPdf, pdfAvailable } from "./pdf";
 import { describeImage, isImage } from "./describe";
-import { isIgnored } from "./ignore";
 import type { KnowledgeAiSettings } from "../settings";
 import { IndexStore, type ChunkMeta } from "./store";
 
@@ -150,4 +149,21 @@ export class Indexer {
 
 function isPdfFile(f: TFile): boolean {
   return f.extension.toLowerCase() === "pdf";
+}
+
+/**
+ * 这个路径是否落在被忽略的文件夹里。
+ *
+ * 按路径段比较，不用 startsWith 裸比——否则填 "Eval" 会连
+ * "Evaluation/" 一起挡掉。填单个文件的完整路径也支持，
+ * 因为想藏起来的往往就是某一个文件而不是整个目录。
+ */
+export function isIgnored(filePath: string, ignoreFolders: string[]): boolean {
+  if (!ignoreFolders?.length) return false;
+  const p = filePath.replace(/^\/+/, "");
+  return ignoreFolders.some((raw) => {
+    const d = raw.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+    if (!d) return false;
+    return p === d || p.startsWith(d + "/");
+  });
 }
