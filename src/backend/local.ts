@@ -43,6 +43,20 @@ export class LocalBackend implements AiBackend {
     const lang = resolveAnswerLang(this.settings.answerLang, question);
 
     try {
+      // 关掉库内检索时就是一个普通的对话模型，不该每问一句都去翻笔记：
+      // 召回的东西既进不了 prompt 的主导位置，又要在界面上列一串
+      // 和问题毫无关系的「参考资料」，看着像它真读了那些书。
+      //
+      // 但用户明确划定的范围仍然算数——＋ 手选的文件、「这页」钉住的整页，
+      // 那是当场表达的意图，不是「自动去翻」。关掉的是自动检索，不是检索本身。
+      const explicit = Boolean(pinned?.length) || Boolean(scope?.length && !opts.scopeInferred);
+      if (!this.settings.vaultRetrieval && !explicit) {
+        // 连 searching / found 都不发：界面据此判断「这轮压根没检索」，
+        // 从而既不显示「库里没有找到相关内容」，也不列参考资料。
+        await this.generate(lang, [], question, history, images, signal, emit);
+        return;
+      }
+
       emit({ type: "searching" });
 
       // 指定了材料就直接用，不检索。「这页讲了什么」走这条路：整页原样送进去。

@@ -483,6 +483,9 @@ export class Conversation {
 
     let foundCount = 0;
     let scopeNote = "";
+    // 这一轮到底检索没检索。不去读设置来判断——那等于把后端的规则
+    // 在界面上再抄一遍，两处早晚会不一致。后端发没发 found 就是答案。
+    let searched = false;
     // 图片随本轮发出后就清空，避免下一问还挂着
     const images = this.pending.map((p) => p.url);
     this.pending = [];
@@ -532,6 +535,7 @@ export class Conversation {
           break;
 
         case "found":
+          searched = true;
           foundCount = e.hits.length;
           if (e.since) scopeNote = t("status.since", { range: e.since });
           // 先亮来源再开始生成：本地模型要等 15–30 秒，
@@ -568,21 +572,27 @@ export class Conversation {
         case "done": {
           // sources 现在按「文件+页」拆，篇数得去重算，不能直接用长度
           const fileCount = new Set(e.sources.map((x) => x.path)).size;
-          // 不要直接删掉状态行——召回列表收起来后只剩一行，
-          // 看着像「只找到一条」。留一句摘要说明实际引用了多少。
-          statusEl.addClass("kai-summary");
-          statusEl.setText(
-            e.sources.length
-              ? e.usedChunks < foundCount
-                // 预算砍掉了一部分，说清楚，别让用户以为 8 段都读了
-                ? t("status.usedPartial", {
-                    files: fileCount,
-                    used: e.usedChunks,
-                    n: foundCount,
-                  })
-                : t("status.usedSources", { files: fileCount, n: foundCount })
-              : t("error.noResults")
-          );
+          // 压根没检索的那一轮，状态行整个撤掉——「库里没有找到相关内容」
+          // 是检索过之后的结论，没检索却这么说是在撒谎。
+          if (!searched) {
+            statusEl.remove();
+          } else {
+            // 不要直接删掉状态行——召回列表收起来后只剩一行，
+            // 看着像「只找到一条」。留一句摘要说明实际引用了多少。
+            statusEl.addClass("kai-summary");
+            statusEl.setText(
+              e.sources.length
+                ? e.usedChunks < foundCount
+                  // 预算砍掉了一部分，说清楚，别让用户以为 8 段都读了
+                  ? t("status.usedPartial", {
+                      files: fileCount,
+                      used: e.usedChunks,
+                      n: foundCount,
+                    })
+                  : t("status.usedSources", { files: fileCount, n: foundCount })
+                : t("error.noResults")
+            );
+          }
           foundEl.addClass("kai-found-collapsed");
           this.finishAnswer(answerEl, e.answer, e.sources, turn);
           this.history.push({ role: "user", content: question });
