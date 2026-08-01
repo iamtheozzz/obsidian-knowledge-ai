@@ -60,7 +60,7 @@ export function streamChat(
 
   const common = {
     model: opts.model ?? settings.chatModel,
-    messages,
+    messages: useNative ? messages.map(toNativeMessage) : messages,
     stream: true,
   };
   const body = JSON.stringify(
@@ -156,6 +156,42 @@ export function streamChat(
  * 只认 /v1 结尾的地址——那是 Ollama 的 OpenAI 兼容层的固定形态。
  * 认不出就返回 null，走标准 OpenAI 协议（云端点、mlx_lm.server 等）。
  */
+/**
+ * 把 OpenAI 多模态消息翻译成 Ollama 原生格式。
+ *
+ * 两边的图片放法完全不同：
+ *   /v1        content: [{type:"text"...}, {type:"image_url", image_url:{url:"data:image/png;base64,AAA"}}]
+ *   /api/chat  content: "文字", images: ["AAA"]        ← 纯 base64，不带 data: 前缀
+ *
+ * 原生端点的 Message.Content 在 Go 那边是 string，直接把数组发过去会被
+ * 拒掉：「json: cannot unmarshal array into Go struct field
+ * ChatRequest.messages.content of type string」。带图问答必现。
+ *
+ * 不能改成「有图就走 /v1」来绕开——/v1 会静默忽略 num_ctx（见上面那段注释），
+ * 窗口锁死 4096，而图片恰恰最吃 token，一张图就撑爆，只是把错误换了个更难查的样子。
+ */
+function toNativeMessage(m: ChatMessage): ChatMessage & { images?: string[] } {
+  if (!Array.isArray(m.content)) return m;
+  const parts = m.content as Array<Record<string, any>>;
+  const text = parts
+    .filter((p) => p?.type === "text")
+    .map((p) => String(p.text ?? ""))
+    .join("\n");
+  const images = parts
+    .filter((p) => p?.type === "image_url")
+    .map((p) => stripDataUrl(String(p.image_url?.url ?? "")))
+    .filter(Boolean);
+  return images.length
+    ? { role: m.role, content: text, images }
+    : { role: m.role, content: text };
+}
+
+/** data:image/png;base64,AAA → AAA。已经是裸 base64 就原样返回。 */
+function stripDataUrl(url: string): string {
+  const i = url.indexOf("base64,");
+  return i >= 0 ? url.slice(i + 7) : url;
+}
+
 function ollamaBase(endpoint: string): string | null {
   const e = endpoint.replace(/\/+$/, "");
   return /\/v1$/.test(e) ? e.replace(/\/v1$/, "") : null;

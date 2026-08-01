@@ -397,6 +397,14 @@ export default class KnowledgeAiPlugin extends Plugin {
     setUiLang(this.settings.uiLang);
     // 忽略规则改了要立刻推给 store，否则查询期还按旧规则过滤
     this.store?.setIgnored(this.settings.ignoreFolders);
+    this.refreshScopeToggles();
+  }
+
+  /** 库内检索开关在设置页和每个面板上各有一个入口，改完一起对齐 */
+  refreshScopeToggles(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_CHAT)) {
+      (leaf.view as ChatView).syncScope?.();
+    }
   }
 
   notify(msg: string) {

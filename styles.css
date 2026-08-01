@@ -547,12 +547,32 @@
 /* ── 检索范围：手选文件 ──────────────────────────── */
 /* 胶囊排在输入框上方，加号常驻在最后一个。参考 Claudian 的做法：
    把「在哪儿找」和「找什么」放在同一个框里，不用另开设置。 */
+/* 工具条一行：左边 ＋ 和文件胶囊，右边开关和清空。
+   两边都在同一个 flex 行里，按钮又是同样的 24px 方块，
+   天然对齐——不要再用 absolute 把右边那组钉在角上，
+   输入区的 padding 一改就会和左边错开半格。 */
+.kai-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0 var(--size-4-6) var(--size-4-2);
+}
+
 .kai-files {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 0 var(--size-4-6) var(--size-4-2);
+  /* 胶囊多到换行时，右边那组按钮留在第一行 */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kai-tool-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
 }
 
 .kai-file-chip {
@@ -648,10 +668,16 @@
 .kai-ref-plain .kai-ref-title { color: var(--text-accent); }
 .kai-ref-plain:hover .kai-ref-title { text-decoration: underline; }
 
-/* 清空对话：和 ＋ 同一排，靠右 */
 .kai-input-wrap { position: relative; }
-.kai-reset {
-  position: absolute;
-  right: var(--size-4-6);
-  top: var(--size-4-1);
+
+/* 库内检索开关。开着的时候用强调色描边，一眼能看出当前是不是
+   严格依据笔记作答——这个状态会实打实改变答案的性质，不能只靠 tooltip。 */
+.kai-scope.is-on {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.kai-scope.is-on:hover {
+  color: var(--interactive-accent);
 }

@@ -53,6 +53,8 @@ const en: Record<keyof typeof zh, string> = {
 
   "status.searching": "Searching…",
   "files.pick": "Pick a file to search within",
+  "scope.on": "Vault-grounded: on (answer from your notes, with citations)",
+  "scope.off": "Vault-grounded: off (notes as context, model may answer freely)",
   "files.n": "{n} files",
   "status.since": " (files modified in {range})",
   "status.scopedToPage": "Reading only page {page} of {name}…",

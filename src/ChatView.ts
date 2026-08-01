@@ -89,6 +89,11 @@ export class ChatView extends ItemView {
     this.conv?.destroy();
   }
 
+  /** 设置页改了库内检索开关，把面板上那个按钮也对齐 */
+  syncScope(): void {
+    this.conv?.syncScope();
+  }
+
   /**
    * 把会话交给 Obsidian 的视图状态，随 workspace 一起存盘。
    *

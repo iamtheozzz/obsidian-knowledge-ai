@@ -53,6 +53,8 @@ export default {
   // —— 过程状态 ——
   "status.searching": "正在检索…",
   "files.pick": "选择文件加入检索范围",
+  "scope.on": "库内检索：开（严格依据笔记作答并附引用）",
+  "scope.off": "库内检索：关（笔记仅作参考，可自由作答）",
   "files.n": "{n} 个文件",
   "status.since": "（限{range}内修改的文件）",
   "status.scopedToPage": "只看《{name}》第 {page} 页…",
