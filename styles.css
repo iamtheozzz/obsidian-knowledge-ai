@@ -460,6 +460,14 @@
   height: 20px;
 }
 
+/* 图标猜不出来时的首字徽章。字号压到和图标一样的视觉重量，
+   否则一排图标里混一个字母会显得特别重 */
+.kai-home-shortcut-letter {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .kai-home-recent {
   margin-top: 40px;
   text-align: left;

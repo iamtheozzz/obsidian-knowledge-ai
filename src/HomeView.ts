@@ -99,7 +99,10 @@ export class HomeView extends ItemView {
       const cmd = getCommand(this.app, id);
       if (!cmd) continue;               // 命令不在了（插件停用/卸载）就跳过这一格
       const btn = this.shortcutsEl.createDiv({ cls: "kai-home-shortcut" });
-      setIcon(btn, cmd.icon);
+      // 图标猜不出来的插件退成首字徽章。四个格子必须互相分得开，
+      // 兜成同一个通用图标等于没有图标
+      if (cmd.icon) setIcon(btn, cmd.icon);
+      else btn.createSpan({ cls: "kai-home-shortcut-letter", text: cmd.letter });
       setTooltip(btn, cmd.name, { placement: "bottom" });
       btn.setAttribute("aria-label", cmd.name);
       btn.addEventListener("click", () => runCommand(this.app, cmd.id));
