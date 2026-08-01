@@ -115,7 +115,12 @@ export class LocalBackend implements AiBackend {
           this.store.search(qv, kk * 6, tt, sc, since, true),
         ]);
 
-      let denseLists = dense(scope, k, th);
+      // 限定到一篇笔记时，它的附件也要一起进来——见 withAttachments。
+      // 只用于检索，headOf 仍按原始 scope 走：附件动辄十几个，
+      // 每个都强制带上开头会把排好序的召回整个挤出窗口。
+      let searchScope = withAttachments(scope, this.store);
+
+      let denseLists = dense(searchScope, k, th);
 
       // 推断出来的范围可能是猜错的。「这个说法对吗」里的「这个」指的是
       // 同一句刚引用的说法，不是碰巧开着的那份 PDF——一旦猜错，全库检索
@@ -126,6 +131,7 @@ export class LocalBackend implements AiBackend {
         const best = Math.max(0, ...denseLists.flat().map((h) => h.score));
         if (best < this.settings.threshold) {
           scope = undefined;
+          searchScope = undefined;
           k = this.settings.topK;
           th = this.settings.threshold;
           denseLists = dense(undefined, k, th);
@@ -137,7 +143,7 @@ export class LocalBackend implements AiBackend {
       // 一个不常见的机构名更是前 8 名一条都不命中。字面那一路专治这个。
       // 关键词命中不受相似度阈值约束，那正是它存在的意义。
       const terms = keyTerms(question);
-      const lexical = terms.length ? this.store.keyword(terms, k * 3, scope, since) : [];
+      const lexical = terms.length ? this.store.keyword(terms, k * 3, searchScope, since) : [];
 
       let hits = twoTier(dedupe(fuse(...denseLists, lexical)), k);
       // 限定文件时，无条件把每个文件开头带上——标题和摘要在那里，
@@ -352,6 +358,40 @@ export class LocalBackend implements AiBackend {
     }
   }
 
+}
+
+/**
+ * 把笔记的附件一起纳入检索范围。
+ *
+ * scope 是按文件路径收窄的，可「一篇笔记」在语义上还包括它引用的图片——
+ * 剪藏下来的网页尤其典型：正文全在图里，.md 本身只剩 frontmatter 和一串
+ * ![](images/01.jpg)。实测限定到这样一篇笔记问「这页第一题怎么写」，
+ * 唯一能召回的就是那个空壳，模型于是照着标题编了一道题出来，
+ * 还挂到了笔记名下——比答不出来危险得多。
+ *
+ * 两种常见落盘方式都认：
+ *   X/Y/Y.md  → 附件在 X/Y/ 下（同名目录，剪藏插件的默认布局）
+ *   X/Y.md    → 附件在 X/Y/ 下（同名兄弟目录）
+ *
+ * 只带非 .md 的附件。同名目录里可能还躺着别的笔记，那些不是这一篇的一部分，
+ * 带上等于把用户划定的范围偷偷放大。
+ */
+function withAttachments(scope: string[] | undefined, store: IndexStore): string[] | undefined {
+  if (!scope?.length) return scope;
+  const all = store.indexedPaths();
+  const out = new Set(scope);
+  for (const p of scope) {
+    if (!/\.md$/i.test(p)) continue;
+    const cut = p.lastIndexOf("/") + 1;
+    const dir = p.slice(0, cut);                     // 根目录下的笔记是空串
+    const base = p.slice(cut).replace(/\.md$/i, "");
+    // 所在目录就叫这个名字时，附件直接在旁边；否则找同名子目录
+    const folder = dir.slice(0, -1).split("/").pop() === base ? dir : `${dir}${base}/`;
+    for (const q of all) {
+      if (q !== p && !/\.md$/i.test(q) && q.startsWith(folder)) out.add(q);
+    }
+  }
+  return [...out];
 }
 
 /**
