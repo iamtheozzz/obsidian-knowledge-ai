@@ -128,6 +128,11 @@ const en: Record<keyof typeof zh, string> = {
   "settings.index.storageRelative": "⚠ \"{path}\" is a relative path; it was ignored and the default location is used. This field needs an absolute path.",
   "settings.index.status": "Index status",
 
+  "settings.home.section": "Home",
+  "settings.home.shortcut": "Shortcut icon {n}",
+  "settings.home.shortcutDesc": "Four icons centred under the home search box; clicking one runs its command. Pick \"None\" to leave a slot empty.",
+  "settings.home.none": "None",
+
   "settings.advanced.section": "Advanced",
   "settings.advanced.topK": "Passages to retrieve",
   "settings.advanced.threshold": "Similarity threshold",

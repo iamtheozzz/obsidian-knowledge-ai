@@ -6,6 +6,7 @@ import type { ConvState } from "./Conversation";
 import { RewriteModal } from "./RewriteModal";
 import { KnowledgeAiSettingTab } from "./SettingTab";
 import { DEFAULT_SETTINGS, type KnowledgeAiSettings } from "./settings";
+import { SHORTCUT_SLOTS } from "./shortcuts";
 import { getUiLang, setUiLang, t } from "./i18n";
 import { Embedder } from "./embedder";
 import { embedBase } from "./models";
@@ -363,7 +364,21 @@ export default class KnowledgeAiPlugin extends Plugin {
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    // 定长数组存进 data.json 后可能被手改成别的长度，渲染和设置页都按
+    // 四格写死，这里统一补齐/截断，省得两边各判一次
+    const s = this.settings.homeShortcuts;
+    this.settings.homeShortcuts = Array.from(
+      { length: SHORTCUT_SLOTS },
+      (_, i) => (Array.isArray(s) && typeof s[i] === "string" ? s[i] : "")
+    );
     this.migrate();
+  }
+
+  /** 主页可能同时开着好几个标签，设置改完一起刷新 */
+  refreshHomes(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME)) {
+      (leaf.view as HomeView).renderShortcuts?.();
+    }
   }
 
   /** 清掉早期方案遗留的配置。

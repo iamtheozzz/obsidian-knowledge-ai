@@ -429,6 +429,37 @@
   color: var(--text-normal);
 }
 
+/* 搜索框下面那排插件图标。只画图标不写字：四条命令名长短不一，
+   排在一起会左右不齐，而名字在 hover 的 tooltip 里已经有了。 */
+.kai-home-shortcuts {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.kai-home-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.kai-home-shortcut:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.kai-home-shortcut .svg-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .kai-home-recent {
   margin-top: 40px;
   text-align: left;
@@ -468,6 +499,7 @@
    在空页面上会顶得太靠上。 */
 .kai-home-minimal .kai-home-stats,
 .kai-home-minimal .kai-home-chips,
+.kai-home-minimal .kai-home-shortcuts,
 .kai-home-minimal .kai-home-recent {
   display: none;
 }

@@ -1,5 +1,6 @@
-import { ItemView, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, TFile, WorkspaceLeaf, setIcon, setTooltip } from "obsidian";
 import { t } from "./i18n";
+import { getCommand, runCommand } from "./shortcuts";
 import type KnowledgeAiPlugin from "./main";
 
 export const VIEW_TYPE_HOME = "knowledge-ai-home";
@@ -19,6 +20,7 @@ export class HomeView extends ItemView {
   private plugin: KnowledgeAiPlugin;
   private root!: HTMLElement;
   private actionEl!: HTMLElement;
+  private shortcutsEl!: HTMLElement;
 
   constructor(leaf: WorkspaceLeaf, plugin: KnowledgeAiPlugin) {
     super(leaf);
@@ -64,12 +66,11 @@ export class HomeView extends ItemView {
 
     inner.createDiv({ cls: "kai-home-stats", text: this.plugin.indexSummary() });
 
-    // ── 示例问题 ─────────────────────────────────────
-    const ex = inner.createDiv({ cls: "kai-home-chips" });
-    for (const q of this.plugin.exampleQuestions()) {
-      const chip = ex.createDiv({ cls: "kai-home-chip", text: q });
-      chip.addEventListener("click", () => this.plugin.openAsk(q));
-    }
+    // ── 插件快捷图标 ─────────────────────────────────
+    // 这里原来放示例问题。示例是给第一次用的人看的，之后每天都盯着同一句
+    // 「我记过哪些…」只是噪音；换成四个常用入口，天天都用得上。
+    this.shortcutsEl = inner.createDiv({ cls: "kai-home-shortcuts" });
+    this.renderShortcuts();
 
     // ── 最近笔记 ─────────────────────────────────────
     const recent = this.recentFiles();
@@ -88,6 +89,21 @@ export class HomeView extends ItemView {
     // 恰恰是简洁模式想去掉的那种东西
     this.actionEl = this.addAction("minimize-2", t("home.minimal"), () => void this.toggleMinimal());
     this.applyMinimal();
+  }
+
+  /** 按设置里选的命令画那排图标。设置页改完会重新调一次 */
+  renderShortcuts(): void {
+    if (!this.shortcutsEl) return;
+    this.shortcutsEl.empty();
+    for (const id of this.plugin.settings.homeShortcuts) {
+      const cmd = getCommand(this.app, id);
+      if (!cmd) continue;               // 命令不在了（插件停用/卸载）就跳过这一格
+      const btn = this.shortcutsEl.createDiv({ cls: "kai-home-shortcut" });
+      setIcon(btn, cmd.icon);
+      setTooltip(btn, cmd.name, { placement: "bottom" });
+      btn.setAttribute("aria-label", cmd.name);
+      btn.addEventListener("click", () => runCommand(this.app, cmd.id));
+    }
   }
 
   /** 只留标题和搜索框，其余全部隐藏 */

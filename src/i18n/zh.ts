@@ -132,6 +132,12 @@ export default {
   "settings.index.storageRelative": "⚠ 「{path}」是相对路径，已忽略并退回默认位置。这一栏需要填绝对路径（如 /Users/你/索引目录）",
   "settings.index.status": "索引状态",
 
+  // —— 设置：主页 ——
+  "settings.home.section": "主页",
+  "settings.home.shortcut": "快捷图标 {n}",
+  "settings.home.shortcutDesc": "主页搜索框下方居中的四个图标，点一下执行对应命令。选「不显示」则空出这一格",
+  "settings.home.none": "不显示",
+
   // —— 设置：高级 ——
   "settings.advanced.section": "高级",
   "settings.advanced.topK": "召回段数",

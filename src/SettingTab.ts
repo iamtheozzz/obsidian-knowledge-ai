@@ -4,6 +4,7 @@ import { testChat, testEmbed, testPdf, testVision } from "./tester";
 import { listEmbedModels, listModels, modelLabel, type ModelInfo, type ModelList } from "./models";
 import type KnowledgeAiPlugin from "./main";
 import { normalizeIgnoreList } from "./index/ignore";
+import { listCommands, SHORTCUT_SLOTS } from "./shortcuts";
 
 export class KnowledgeAiSettingTab extends PluginSettingTab {
   private plugin: KnowledgeAiPlugin;
@@ -410,6 +411,9 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         })
     );
 
+    // ── 主页 ──────────────────────────────────────────
+    new Setting(c).setName(t("settings.home.section")).setHeading();
+
     new Setting(c)
       .setName(t("set.newTabHome"))
       .setDesc(t("set.newTabHomeDesc"))
@@ -419,6 +423,27 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    // 搜索框下面那排图标。命令列表在这一段里只取一次——
+    // 装了插件的库通常有好几百条，四个下拉框各算一遍没必要
+    const cmds = listCommands(this.app);
+    for (let i = 0; i < SHORTCUT_SLOTS; i++) {
+      const slot = new Setting(c).setName(t("settings.home.shortcut", { n: i + 1 }));
+      if (i === 0) slot.setDesc(t("settings.home.shortcutDesc"));
+      slot.addDropdown((d) => {
+        d.addOption("", t("settings.home.none"));
+        const cur = this.plugin.settings.homeShortcuts[i] ?? "";
+        // 选中的命令可能来自已停用的插件，不在列表里也得留住，
+        // 否则一进设置页就被静默改成「不显示」
+        if (cur && !cmds.some((x) => x.id === cur)) d.addOption(cur, cur);
+        for (const cmd of cmds) d.addOption(cmd.id, cmd.name);
+        d.setValue(cur).onChange(async (v) => {
+          this.plugin.settings.homeShortcuts[i] = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshHomes();
+        });
+      });
+    }
 
     new Setting(c).setName(t("set.ribbon")).addToggle((x) =>
       x.setValue(this.plugin.settings.showRibbon).onChange(async (v) => {

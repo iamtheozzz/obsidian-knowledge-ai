@@ -53,6 +53,10 @@ export interface KnowledgeAiSettings {
   newTabHome: boolean;
   /** 主页简洁模式：只留标题和搜索框 */
   homeMinimal: boolean;
+
+  /** 主页搜索框下面那排图标绑的命令 id，定长 4，空串 = 该格留空。
+   *  绑命令而不是绑插件：插件本身没有可调用的公开入口，命令有。 */
+  homeShortcuts: string[];
 }
 
 export const DEFAULT_SETTINGS: KnowledgeAiSettings = {
@@ -90,4 +94,13 @@ export const DEFAULT_SETTINGS: KnowledgeAiSettings = {
   showRibbon: true,
   newTabHome: false,
   homeMinimal: false,
+
+  // 默认给四个一定存在的入口：本插件的面板 + 三个核心插件命令。
+  // 核心插件被停用时对应格子会自己消失（getCommand 查不到就不画）
+  homeShortcuts: [
+    "lark-knowledge-ai:open-pane",
+    "switcher:open",
+    "global-search:open",
+    "graph:open",
+  ],
 };
