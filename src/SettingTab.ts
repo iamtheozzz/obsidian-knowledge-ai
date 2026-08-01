@@ -210,6 +210,16 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(c)
+      .setName(t("settings.index.quickScope"))
+      .setDesc(t("settings.index.quickScopeDesc"))
+      .addToggle((x) =>
+        x.setValue(this.plugin.settings.quickScope).onChange(async (v) => {
+          this.plugin.settings.quickScope = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
     const ignoreSetting = new Setting(c)
       .setName(t("settings.index.ignore"))
       .setDesc(t("settings.index.ignoreDesc"))

@@ -43,6 +43,10 @@ export interface KnowledgeAiSettings {
    *  关：笔记只作为可选参考，模型可以结合自身知识自由回答。 */
   vaultRetrieval: boolean;
 
+  /** 把上面那个开关也放到输入框旁边。
+   *  关掉之后按钮从所有输入框消失，只能在设置页里改。 */
+  quickScope: boolean;
+
   // 高级
   topK: number;
   threshold: number;
@@ -80,6 +84,7 @@ export const DEFAULT_SETTINGS: KnowledgeAiSettings = {
 
   autoIndex: true,
   vaultRetrieval: true,
+  quickScope: true,
 
   // 8 是早先跟 ~/bin/ai 对齐的值，偏紧：一道问题往往牵涉两三份材料，
   // 而同一份材料常占掉两三段，8 段经常只够覆盖一份半。

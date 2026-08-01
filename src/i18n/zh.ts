@@ -116,6 +116,8 @@ export default {
   "settings.index.section": "索引",
   "settings.index.retrieval": "内部知识检索",
   "settings.index.retrievalDesc": "开启时严格依据你的笔记作答并附上引用；关闭后笔记只作为参考，模型可结合自身知识自由回答",
+  "settings.index.quickScope": "快捷检索开关",
+  "settings.index.quickScopeDesc": "在输入框旁边显示「内部知识检索」的快捷按钮，随手就能切换；关闭后按钮收起，只能在这里改",
   "settings.index.scope": "索引范围",
   "settings.index.ignore": "忽略的文件夹",
   "settings.index.ignoreDesc": "每行一个，填库内的相对路径。这些文件留在库里但不进索引，提问时不会被检索到。填文件夹会连子目录一起排除；填单个文件要带扩展名",

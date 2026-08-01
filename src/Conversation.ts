@@ -94,16 +94,21 @@ export class Conversation {
     root.empty();
 
     this.inputWrap = createDiv({ cls: "kai-input-wrap" });
-    if (opts.pickFiles) {
+    // 弹窗没有文件选择那一套，但只要开了「快捷检索开关」，它也该有这个按钮——
+    // 用户是在任何一个输入框前决定这一问要不要走库内检索的。
+    if (opts.pickFiles || this.plugin.settings.quickScope) {
       // 一排工具条：左边是「＋」和已选文件胶囊，右边是开关和清空。
       // 左右两组必须在同一个 flex 行里对齐——右边那两个按钮曾经是
       // absolute 定位的，输入区一改 padding 就和「＋」错开半格。
       const bar = this.inputWrap.createDiv({ cls: "kai-toolbar" });
-      this.filesEl = bar.createDiv({ cls: "kai-files" });
-      const add = this.filesEl.createDiv({ cls: "kai-file-add" });
-      setIcon(add.createSpan(), "plus");
-      add.setAttribute("aria-label", t("files.pick"));
-      add.addEventListener("click", () => this.pickFile());
+      const left = bar.createDiv({ cls: "kai-files" });
+      if (opts.pickFiles) {
+        this.filesEl = left;
+        const add = left.createDiv({ cls: "kai-file-add" });
+        setIcon(add.createSpan(), "plus");
+        add.setAttribute("aria-label", t("files.pick"));
+        add.addEventListener("click", () => this.pickFile());
+      }
 
       const right = bar.createDiv({ cls: "kai-tool-right" });
 
@@ -118,15 +123,17 @@ export class Conversation {
       this.scopeEl = scope;
       this.syncScope();
 
-      // 清空对话也放这儿。视图标题栏那个 addAction 在侧边栏里很容易被
-      // 忽略甚至不显示，放进输入区旁边才是稳的。
-      const clear = right.createDiv({ cls: "kai-file-add kai-reset" });
-      setIcon(clear.createSpan(), "rotate-ccw");
-      clear.setAttribute("aria-label", t("pane.reset"));
-      clear.addEventListener("click", () => this.reset());
-      this.resetEl = clear;
+      if (opts.pickFiles) {
+        // 清空对话也放这儿。视图标题栏那个 addAction 在侧边栏里很容易被
+        // 忽略甚至不显示，放进输入区旁边才是稳的。
+        const clear = right.createDiv({ cls: "kai-file-add kai-reset" });
+        setIcon(clear.createSpan(), "rotate-ccw");
+        clear.setAttribute("aria-label", t("pane.reset"));
+        clear.addEventListener("click", () => this.reset());
+        this.resetEl = clear;
 
-      this.renderFiles();
+        this.renderFiles();
+      }
     }
     this.inputEl = this.inputWrap.createEl("textarea", {
       cls: "kai-input",
@@ -333,6 +340,9 @@ export class Conversation {
    */
   syncScope() {
     if (!this.scopeEl) return;
+    // 按钮始终建出来，显示与否只由 class 控制——这样在设置页里开关「快捷检索开关」
+    // 时，已经开着的面板不用重建 DOM 就能立刻跟上。
+    this.scopeEl.toggleClass("kai-hidden", !this.plugin.settings.quickScope);
     const on = this.plugin.settings.vaultRetrieval;
     this.scopeEl.toggleClass("is-on", on);
     this.scopeEl.setAttribute("aria-label", t(on ? "scope.on" : "scope.off"));

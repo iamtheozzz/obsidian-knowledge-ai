@@ -98,6 +98,39 @@
   line-height: 1.6;
 }
 
+/* 宽内容自己横向滚，别把整个面板撑破。
+   模型很爱把一整条递推写成一行行间公式（S2=… , S3=… , S4=… , S5=…），
+   MathJax 不会折行，侧栏里超出的部分直接被裁掉——最后那一步算出什么
+   根本看不见，答案看着就像半截。表格和代码块同理。
+
+   Obsidian 自己只给编辑视图加了这条（.markdown-source-view.mod-cm6
+   .math-block > mjx-container{overflow-x:auto}），渲染出来的 markdown
+   没有，所以插件必须自己补。
+   .math-block 在渲染视图里是 span，要先 display:block 才吃 overflow。 */
+.kai-answer .math-block,
+.kai-answer mjx-container[display="true"] {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.kai-answer pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 表格要先变成块级，overflow 才对它生效 */
+.kai-answer table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 行内公式太长时也别顶破布局 */
+.kai-answer mjx-container {
+  max-width: 100%;
+}
+
 /* ── 空状态 ──────────────────────────────────────── */
 .kai-stats {
   color: var(--text-faint);
@@ -681,3 +714,6 @@
 .kai-scope.is-on:hover {
   color: var(--interactive-accent);
 }
+
+/* 「快捷检索开关」关掉时，按钮从输入框旁边收起，只留设置页那个入口 */
+.kai-hidden { display: none; }
