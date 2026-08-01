@@ -93,6 +93,7 @@ export default {
   "index.embedWarn": "⚠ 换嵌入模型会让已有向量全部失效，必须重建整个索引（本库约需 {minutes} 分钟）",
   "index.estimate": "预计需要 {minutes} 分钟",
   "index.failed": "{n} 个文件提取失败，详情见控制台",
+  "index.scanned": "跳过 {n} 个没有文字层的 PDF（扫描件，需 OCR 后才能检索），文件名见控制台",
 
   // —— 设置：模型 ——
   "settings.model.section": "模型",

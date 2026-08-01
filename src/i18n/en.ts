@@ -91,6 +91,7 @@ const en: Record<keyof typeof zh, string> = {
   "index.embedWarn": "⚠ Changing the embedding model invalidates every existing vector — the whole index must be rebuilt (~{minutes} min for this vault)",
   "index.estimate": "About {minutes} min",
   "index.failed": "{n} files could not be extracted — see console",
+  "index.scanned": "Skipped {n} PDFs with no text layer (scans — they need OCR before they can be searched); names in the console",
 
   "settings.model.section": "Model",
   "settings.model.endpoint": "Endpoint URL",

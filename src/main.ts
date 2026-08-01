@@ -286,9 +286,13 @@ export default class KnowledgeAiPlugin extends Plugin {
           chunks: this.store.size,
           files: this.store.fileCount,
           seconds: r.seconds.toFixed(0),
-        }) + (r.failed.length ? `\n${t("index.failed", { n: r.failed.length })}` : "")
+        }) +
+          (r.failed.length ? `\n${t("index.failed", { n: r.failed.length })}` : "") +
+          (r.scanned.length ? `\n${t("index.scanned", { n: r.scanned.length })}` : "")
       );
       if (r.failed.length) console.warn("[knowledge-ai] 提取失败:", r.failed);
+      // 文件名列在控制台：想 OCR 哪几本得知道是哪几本，而通知框放不下
+      if (r.scanned.length) console.warn("[knowledge-ai] 无文字层，已跳过:", r.scanned);
     } catch (e) {
       this.setStatusText(null);
       this.notify(t("error.generic", { message: e instanceof Error ? e.message : String(e) }));

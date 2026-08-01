@@ -2,7 +2,7 @@ import * as path from "path";
 import { TFile, Vault } from "obsidian";
 import { Embedder } from "../embedder";
 import { chunkText, pageMap } from "./chunker";
-import { cacheKey, cleanPdfCache, extractPdf, pdfAvailable } from "./pdf";
+import { cacheKey, cleanPdfCache, extractPdf, isScanned, pdfAvailable } from "./pdf";
 import { describeImage, isImage } from "./describe";
 import { isIgnored } from "./ignore";
 import type { KnowledgeAiSettings } from "../settings";
@@ -44,7 +44,10 @@ export class Indexer {
   async run(
     scopeFolders: string[],
     onProgress: (p: Progress) => void
-  ): Promise<{ files: number; chunks: number; removed: number; seconds: number; failed: string[] }> {
+  ): Promise<{
+    files: number; chunks: number; removed: number; seconds: number;
+    failed: string[]; scanned: string[];
+  }> {
     this.aborted = false;
     this.running = true;
     const t0 = performance.now();
@@ -69,6 +72,8 @@ export class Indexer {
       const todo = files.filter((f) => this.store.mtimeOf(f.path) !== f.stat.mtime);
       let chunks = 0;
       const failed: string[] = [];
+      /** 没有文字层的 PDF（扫描件、拍照件、手写笔记） */
+      const scanned: string[] = [];
 
       for (let i = 0; i < todo.length; i++) {
         if (this.aborted) break;
@@ -98,6 +103,21 @@ export class Indexer {
             const r = await extractPdf(this.vault, file, this.pdfCacheDir);
             if ("error" in r) {
               failed.push(`${file.name}: ${r.error}`);
+              continue;
+            }
+            // 扫描件整个跳过，一块都不要建。
+            //
+            // 抽不到字的 PDF 仍然会产出「[第 1 页][第 2 页]…」这样的正文，
+            // 照常切块、照常算向量，于是一个 63MB 的扫描件在索引里变成
+            // 几块「只有页码」的内容。这些块对任何缺实词的问题（「这页…」
+            // 「这个…」）都能撞出 0.6+ 的相似度，稳定地挤进召回前列，
+            // 把真正有内容的段落顶出窗口——实测一个库里 33 个扫描件
+            // 贡献了 77 块这样的纯噪音。
+            if (isScanned(r.text)) {
+              scanned.push(file.path);
+              // 老索引里可能已经躺着这个文件的页码块，顺手清掉——
+              // 否则装了新版也要等用户手动重建才能摆脱那些噪音
+              this.store.removePaths(new Set([file.path]));
               continue;
             }
             body = r.text;
@@ -154,6 +174,7 @@ export class Indexer {
         removed: stale.size,
         seconds: (performance.now() - t0) / 1000,
         failed,
+        scanned,
       };
     } finally {
       this.running = false;

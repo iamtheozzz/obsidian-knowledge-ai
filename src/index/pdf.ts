@@ -37,6 +37,24 @@ export function pdfAvailable(): boolean {
   return lib() !== null;
 }
 
+/**
+ * 这份 PDF 是不是没有文字层（扫描件、拍照件、手写笔记）。
+ *
+ * 判据是「去掉页码标记后平均每页还剩几个字符」。阈值刻意定得极低：
+ * 真正的扫描件是精确的 0，而有些书正文是插图、每页只有稀疏图注，
+ * 那点字仍然有用，不该被误杀。5 这条线只抓得到真扫描件。
+ *
+ * 页码标记是本文件自己加的（见 extractPdf），所以这个判断也放在这里——
+ * 放到 indexer 里就得让它去猜标记长什么样，格式一改两边就对不上了。
+ */
+export function isScanned(text: string): boolean {
+  const marks = text.match(/^\[第 \d+ 页\]$/gm)?.length ?? 0;
+  const body = text.replace(/^\[第 \d+ 页\]$/gm, "").replace(/\s+/g, "");
+  // 一页都没有的畸形文件交给别处处理，这里不下结论
+  if (marks === 0) return false;
+  return body.length / marks < 5;
+}
+
 /** 缓存键含 mtime 和大小，文件变了自动重提。
  *  一本几百页的教材提取要几秒、产出上百万字符，每次索引都重来不可接受。 */
 function cacheKey(file: TFile): string {
