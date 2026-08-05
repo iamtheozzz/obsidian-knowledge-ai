@@ -551,7 +551,13 @@ export class Conversation {
           );
           for (const h of e.hits.slice(0, 5)) {
             const row = foundEl.createDiv({ cls: "kai-found-row" });
-            row.createSpan({ cls: "kai-score", text: h.score.toFixed(2) });
+            // 字面命中的分是没有上界的 IDF 累加，和余弦分不可比：并排显示时
+            // 一个 16.00 会让人以为它比 0.55 那条准得多，其实两者量纲不同，
+            // 排序也不是按它排的（见 fuse 的 RRF）。余弦不可能超过 1，用它区分。
+            row.createSpan({
+              cls: "kai-score",
+              text: h.score > 1 ? t("answer.lexical") : h.score.toFixed(2),
+            });
             row.createSpan({
               text: `${h.path.split("/").pop()}  ${
                 h.page ? t("answer.page", { page: h.page }) : `L${h.line}`

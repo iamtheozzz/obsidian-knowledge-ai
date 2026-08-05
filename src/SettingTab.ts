@@ -220,6 +220,16 @@ export class KnowledgeAiSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(c)
+      .setName(t("settings.index.crossLingual"))
+      .setDesc(t("settings.index.crossLingualDesc"))
+      .addToggle((x) =>
+        x.setValue(this.plugin.settings.crossLingual).onChange(async (v) => {
+          this.plugin.settings.crossLingual = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
     const ignoreSetting = new Setting(c)
       .setName(t("settings.index.ignore"))
       .setDesc(t("settings.index.ignoreDesc"))

@@ -69,6 +69,7 @@ const en: Record<keyof typeof zh, string> = {
 
   "answer.references": "References",
   "answer.page": "p. {page}",
+  "answer.lexical": "kw",
   "answer.insert": "Insert into note",
   "answer.saveAs": "Save as note",
   "answer.copy": "Copy",
@@ -115,6 +116,8 @@ const en: Record<keyof typeof zh, string> = {
   "settings.index.retrievalDesc": "On: answer strictly from your notes and cite them. Off: notes are just context — the model may answer freely from its own knowledge",
   "settings.index.quickScope": "Quick toggle in composer",
   "settings.index.quickScopeDesc": "Show a shortcut button for vault-grounded answers next to the input box. Off: the button is hidden and the switch lives only here",
+  "settings.index.crossLingual": "Cross-language retrieval",
+  "settings.index.crossLingualDesc": "In a mixed-language vault, also search with a translation of your question so a Chinese question still reaches English material (and vice versa); costs one extra model call per question",
   "settings.index.scope": "Scope",
   "settings.index.ignore": "Ignored folders",
   "settings.index.ignoreDesc": "One per line, as vault-relative paths. These files stay in your vault but never enter the index, so questions won't retrieve them. A folder excludes its subfolders too; a single file needs its extension",

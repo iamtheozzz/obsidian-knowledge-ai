@@ -228,6 +228,22 @@ export function rewritePrompt(lang: Locale, history: string, followUp: string): 
 
 
 /**
+ * 把问题翻成另一种语言，用来补一路检索。
+ *
+ * 库里中英材料混着放时，向量检索跨语言是会掉分的：实测中文问句对一段英文
+ * 法律条文只有 0.41，同样内容的中文笔记是 0.61——答案明明在索引里，却过不了
+ * 阈值。译文只是多一路召回，不替换原句，所以译歪了也只是白跑一路。
+ *
+ * 要求「专有名词原样保留」是因为型号名、人名、缩写恰恰是字面检索的命脉，
+ * 翻译它们只会让两路都失准。
+ */
+export function translateQueryPrompt(to: "en" | "zh", question: string): string {
+  return to === "en"
+    ? `Translate this search query into English. Keep proper nouns, model names and acronyms exactly as they are. Output only the translation, nothing else.\n\nQuery: ${question}`
+    : `把下面这个检索问题翻译成中文。专有名词、型号名、缩写保持原样不要翻译。只输出翻译结果，不要任何解释。\n\n问题：${question}`;
+}
+
+/**
  * 选中改写。刻意不给它「材料」的概念——选中的那段就是全部输入，
  * 任务是变换它而不是回答问题。最关键的是「只输出改写结果」：
  * 模型很爱加「好的，以下是改写后的版本：」，那玩意会被直接写进用户的笔记。

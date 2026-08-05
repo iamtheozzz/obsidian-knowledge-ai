@@ -16,15 +16,50 @@ export interface Hit extends ChunkMeta {
   score: number;
 }
 
-/** 子串出现次数。indexOf 循环比正则快，也不用担心转义。 */
-function countOf(text: string, term: string): number {
+/**
+ * 纯字母的词要卡词边界，否则短词会疯狂误命中：搜 port 会在 important、support、
+ * report、proportion 里各命中一次，搜 rent 会命中 different、current、parent。
+ * 实测一批常见检索词，纯子串匹配下平均有近一半的命中是这样来的，
+ * 足以让一份毫不相干的文档凭虚高的分数挤进前列。
+ *
+ * 只对纯字母词启用。型号名、版本号那类带数字连字符的本来就够独特，
+ * 而且卡边界反而会漏掉 GPT-4o 里的 GPT-4。
+ *
+ * 干活的是词首那道边界——proven、constraint、different、important 全栽在它上面。
+ * 词尾恰恰相反，卡死它是有害的：实测搜 train 时，词尾严格会把 training、trained、
+ * trainable 一并砍掉，被砍掉的合法词形比借此排除的 constraint 还多，净亏。
+ * 所以词尾放开一批常见派生后缀，既找回词形又不放 constraint 进来。
+ */
+const SUFFIX = "(?:e?s|e?d|ing|ings|er|ers|or|ors|al|able|ible|ment|ments|ion|ions|ly|ness|ity)?";
+
+function matcherFor(term: string): RegExp | null {
+  return /^[a-z]+$/.test(term)
+    ? new RegExp(`(?<![a-z0-9])${term}${SUFFIX}(?![a-z0-9])`, "g")
+    : null;
+}
+
+function countOf(text: string, term: string, re: RegExp | null): number {
   let n = 0;
+  if (re) {
+    re.lastIndex = 0;
+    while (re.exec(text) !== null) n++;
+    return n;
+  }
   let i = text.indexOf(term);
   while (i !== -1) {
     n++;
     i = text.indexOf(term, i + term.length);
   }
   return n;
+}
+
+/** 和 countOf 同一套判定，只问「有没有」，用来统计 df */
+function hasTerm(text: string, term: string, re: RegExp | null): boolean {
+  if (re) {
+    re.lastIndex = 0;
+    return re.test(text);
+  }
+  return text.includes(term);
 }
 
 interface StoreHeader {
@@ -293,6 +328,7 @@ export class IndexStore {
   keyword(terms: string[], topK: number, paths?: string[], since?: number): Hit[] {
     if (terms.length === 0) return [];
     const lower = terms.map((t) => t.toLowerCase());
+    const res = lower.map(matcherFor);
 
     // 先数每个词的文档频率，用来算 IDF
     const df = new Array(lower.length).fill(0);
@@ -305,7 +341,7 @@ export class IndexStore {
       inScope.push(i);
       const text = m.text.toLowerCase();
       for (let t = 0; t < lower.length; t++) {
-        if (text.includes(lower[t])) df[t]++;
+        if (hasTerm(text, lower[t], res[t])) df[t]++;
       }
     }
     if (inScope.length === 0) return [];
@@ -352,7 +388,7 @@ export class IndexStore {
       for (let t = 0; t < lower.length; t++) {
         if (!idf[t]) continue;
         // 出现次数取对数：一段里重复十次不该比出现两次值钱五倍
-        const n = countOf(text, lower[t]);
+        const n = countOf(text, lower[t], res[t]);
         let w = n ? 1 + Math.log(n) : 0;
         // 模糊命中按覆盖率折价，再整体压一档：同一段里两者都成立时取较大的，
         // 精确命中不该因为顺带算了一次模糊而被压低

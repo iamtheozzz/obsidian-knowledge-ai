@@ -9,6 +9,9 @@
 const STOP = new Set([
   "the", "and", "for", "with", "that", "this", "what", "how", "why", "who",
   "is", "are", "was", "were", "does", "did", "can", "should", "would",
+  // 放宽到 4 个字母后才够得着的一批虚词，它们 df 极高、对检索毫无贡献
+  "have", "has", "had", "been", "will", "from", "into", "than", "then",
+  "there", "their", "about", "which", "where", "when", "some", "any", "all",
   "里", "的", "了", "是", "在", "有", "和", "与", "或", "什么", "怎么", "如何",
   "为什么", "哪些", "哪个", "介绍", "讲了", "说了", "提到", "关于", "一下",
 ]);
@@ -37,8 +40,12 @@ export function keyTerms(question: string): string[] {
     const w = m[0];
     if (w.length < 2 || STOP.has(w.toLowerCase())) continue;
     // 全小写且没有数字连字符的普通词，只有够长才留——短词噪音太大
+    // 四个字母的普通名词值得留：rent / unit / door / oven 这类实词在库里 df 通常
+    // 很低、IDF 很高，恰恰是字面检索最该抓的东西，按长度一刀切会把它们全丢掉。
+    // 更短的才是真噪音。放宽的安全垫是 keyword() 里的 IDF——常见词权重自然趋近 0，
+    // 不需要在这里靠长度粗筛。
     const distinctive = /[A-Z0-9]/.test(w) || /[-_.]/.test(w);
-    if (!distinctive && w.length < 5) continue;
+    if (!distinctive && w.length < 4) continue;
     out.add(w);
   }
 

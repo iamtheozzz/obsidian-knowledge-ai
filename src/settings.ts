@@ -47,6 +47,10 @@ export interface KnowledgeAiSettings {
    *  关掉之后按钮从所有输入框消失，只能在设置页里改。 */
   quickScope: boolean;
 
+  /** 中英混合库的跨语言检索：额外用问题的译文再检索一路。
+   *  代价是每次提问多一次模型调用（只翻一句话，很短）。 */
+  crossLingual: boolean;
+
   // 高级
   topK: number;
   threshold: number;
@@ -85,6 +89,7 @@ export const DEFAULT_SETTINGS: KnowledgeAiSettings = {
   autoIndex: true,
   vaultRetrieval: true,
   quickScope: true,
+  crossLingual: true,
 
   // 8 是早先跟 ~/bin/ai 对齐的值，偏紧：一道问题往往牵涉两三份材料，
   // 而同一份材料常占掉两三段，8 段经常只够覆盖一份半。

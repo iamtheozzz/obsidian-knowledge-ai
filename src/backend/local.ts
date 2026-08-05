@@ -2,7 +2,7 @@ import { Embedder } from "../embedder";
 import { resolveAnswerLang, type Locale } from "../i18n";
 import type { IndexStore, Hit } from "../index/store";
 import { embedBase } from "../models";
-import { aboutUserPrompt, bareQuestion, rewritePrompt, speaker, systemPrompt, userPrompt } from "../prompts";
+import { aboutUserPrompt, bareQuestion, rewritePrompt, speaker, systemPrompt, translateQueryPrompt, userPrompt } from "../prompts";
 import type { KnowledgeAiSettings } from "../settings";
 import { StreamCleaner } from "../clean";
 import { keyTerms, needsRewrite, timeRange } from "../query";
@@ -11,6 +11,9 @@ import type { AiBackend, AskEvent, AskOptions, Source, Turn } from "./types";
 
 /** 限定文件后的召回段数。范围已经窄了，多给几段只是把同一篇读得更全。 */
 const SCOPED_TOPK = 32;
+
+/** 中日韩字符。用来决定跨语言那一路往哪个方向翻。 */
+const CJK = /[㐀-鿿぀-ヿ가-힯]/;
 
 /** 限定文件时显式申请的上下文窗口。 */
 const SCOPED_CTX = 32768;   // 实测再往上到 65536 要 134 秒，且只剩 0.6GB 内存
@@ -90,6 +93,15 @@ export class LocalBackend implements AiBackend {
       const queries =
         rewritten && rewritten !== question ? [question, rewritten] : [question];
 
+      // 跨语言补一路。和改写同理，只加不换：中英混合的库里，问句语言决定了
+      // 哪一半材料够得着阈值，译文那一路负责把另一半捞回来。
+      // 失败就返回 null，检索照常走——这一路是锦上添花，不该成为单点故障。
+      if (this.settings.crossLingual) {
+        const translated = await this.translateQuery(question, signal);
+        if (signal.aborted) return;
+        if (translated && !queries.includes(translated)) queries.push(translated);
+      }
+
       const emb = new Embedder(
         embedBase(this.settings),
         this.settings.embedModel,
@@ -156,7 +168,22 @@ export class LocalBackend implements AiBackend {
       // 最高分只有 0.439、过不了阈值，插件会回答「库里没有」——而库里有 3 段；
       // 一个不常见的机构名更是前 8 名一条都不命中。字面那一路专治这个。
       // 关键词命中不受相似度阈值约束，那正是它存在的意义。
-      const terms = keyTerms(question);
+      // 对所有查询句抽词，不只原句。跨语言那一路的价值大半在这里：用一种语言提问
+      // 时抽不出任何能匹配另一种语言材料的词，译文里的对应词才是够得着的那把钥匙，
+      // 而字面命中不受相似度阈值约束——跨语言时语义分往往恰恰卡在阈值下面。
+      // 去重要忽略大小写：同一个词在原句和译文里大小写可能不同，留成两条
+      // 会让它在 keyword() 里被算两遍、权重凭空翻倍。
+      const seen = new Set<string>();
+      const terms: string[] = [];
+      for (const q of queries) {
+        for (const term of keyTerms(q)) {
+          const lower = term.toLowerCase();
+          if (seen.has(lower)) continue;
+          seen.add(lower);
+          terms.push(term);
+        }
+      }
+      terms.splice(8);
       const lexical = terms.length ? this.store.keyword(terms, k * 3, searchScope, since) : [];
 
       let hits = twoTier(dedupe(fuse(...denseLists, lexical)), k);
@@ -345,6 +372,46 @@ export class LocalBackend implements AiBackend {
   }
 
   /** 用一次极短的非流式调用把追问改写成独立查询 */
+  /**
+   * 把问题翻成另一种语言，供跨语言那一路检索用。
+   *
+   * 方向由问句自己决定：有中日韩字就译英文，否则译中文。混合语言的库里
+   * 两个方向都缺不得——用哪种语言提问，就够不着另一种语言写的那半边材料。
+   */
+  private async translateQuery(
+    question: string,
+    signal: AbortSignal
+  ): Promise<string | null> {
+    const to = CJK.test(question) ? "en" : "zh";
+    try {
+      let out = "";
+      await streamChat(
+        this.settings,
+        [
+          { role: "user", content: translateQueryPrompt(to, question) },
+          // 预填一个空的思考块，让带 thinking 的模型直接进入正文。
+          // 不这么做的话它会把预算全花在推理上：实测带 thinking 的本地模型翻一句话
+          // 要十几秒、几百 token 才吐出结果，预算给小了干脆返回空字符串
+          // （finish_reason=length，正文一个字都没轮到）。预填之后不到一秒。
+          // 对不带 thinking 的模型这就是一段普通前缀，不影响输出。
+          { role: "assistant", content: "<think></think>" },
+        ],
+        signal,
+        (c) => (out += c),
+        { maxTokens: 200 }
+      );
+      const clean = out
+        .replace(/<think>[\s\S]*?(?:<\/think>|$)/g, "")
+        .trim()
+        .split("\n")[0]
+        .slice(0, 200);
+      // 太短说明模型没好好答；和原句一样说明它压根没翻——两种情况都不值得多跑一路
+      return clean.length >= 2 && clean !== question ? clean : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async rewrite(
     followUp: string,
     history: Turn[],
